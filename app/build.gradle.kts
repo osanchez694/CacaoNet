@@ -59,8 +59,13 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    // Firebase
-    implementation(libs.firebase.bom)
-    implementation(libs.firebase.auth)
-    implementation("com.google.firebase:firebase-firestore-ktx")   // 👈 NUEVO
+    // --- AÑADIDO POR NOSOTROS ---
+
+    // Navegación compose
+    implementation("androidx.navigation:navigation-compose:2.8.3")
+
+    // Firebase (BOM + Auth + Firestore)
+    implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
 }

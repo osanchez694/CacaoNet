@@ -1,6 +1,8 @@
 package me.oscarsanchez.cacaonet
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -12,8 +14,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 @Composable
 fun RegisterDeliveryScreen(navController: NavController) {
 
+    // Instancia de Firestore
     val db = FirebaseFirestore.getInstance()
 
+    // Estados de los campos
     var productor by remember { mutableStateOf("") }
     var peso by remember { mutableStateOf("") }
     var humedad by remember { mutableStateOf("") }
@@ -26,7 +30,10 @@ fun RegisterDeliveryScreen(navController: NavController) {
                 title = { Text("Registrar entrega de cacao") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver"
+                        )
                     }
                 }
             )
@@ -36,7 +43,8 @@ fun RegisterDeliveryScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
             OutlinedTextField(
@@ -46,16 +54,12 @@ fun RegisterDeliveryScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             OutlinedTextField(
                 value = peso,
                 onValueChange = { peso = it },
                 label = { Text("Peso (kg)") },
                 modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = humedad,
@@ -64,16 +68,13 @@ fun RegisterDeliveryScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             OutlinedTextField(
                 value = fecha,
                 onValueChange = { fecha = it },
                 label = { Text("Fecha") },
+                placeholder = { Text("dd/mm/aaaa") },
                 modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = tipoCacao,
@@ -86,7 +87,7 @@ fun RegisterDeliveryScreen(navController: NavController) {
 
             Button(
                 onClick = {
-
+                    // Mapa con los datos que se van a guardar
                     val entrega = hashMapOf(
                         "productor" to productor,
                         "pesoKg" to peso.toDoubleOrNull(),
@@ -98,13 +99,12 @@ fun RegisterDeliveryScreen(navController: NavController) {
                     db.collection("entregas")
                         .add(entrega)
                         .addOnSuccessListener {
-                            // volver atrás cuando se guarde
+                            // Si todo sale bien, volvemos atrás
                             navController.popBackStack()
                         }
                         .addOnFailureListener {
-                            // Mostrar error si deseas
+                            // Aquí podrías mostrar un Snackbar o Log.e si quieres
                         }
-
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
