@@ -21,12 +21,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
-// Modelo de datos simple para configurar los botones del menú
+// --- PALETA DE COLORES INTENSA (CACAO) ---
+val DeepChocolate = Color(0xFF3E2723) // Café muy oscuro (Barra superior)
+val MilkChocolate = Color(0xFF5D4037) // Café medio (Textos)
+val LatteBackground = Color(0xFFD7CCC8) // Fondo de la pantalla (Café con leche)
+val CreamCard = Color(0xFFFFF8E1)       // Fondo de las tarjetas (Crema suave)
+
 data class DashboardItem(
     val title: String,
     val icon: ImageVector,
-    val route: String,
-    val color: Color = Color(0xFF6750A4)
+    val route: String
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,7 +38,6 @@ data class DashboardItem(
 fun OperatorDashboardScreen(
     navController: NavController
 ) {
-    // Definimos los items del menú
     val menuItems = listOf(
         DashboardItem("Reportes", Icons.Default.DateRange, Screen.Reports.route),
         DashboardItem("Inventario", Icons.Default.List, Screen.Inventory.route),
@@ -43,20 +46,21 @@ fun OperatorDashboardScreen(
     )
 
     Scaffold(
-        containerColor = Color(0xFFF8F9FA),
+        containerColor = LatteBackground, // <--- Fondo color Café con Leche
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
-                            text = "Dashboard",
+                            text = "CacaoNet",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White // Texto blanco sobre fondo oscuro
                         )
                         Text(
                             text = "Panel de Operador",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
+                            color = Color(0xFFBCAAA4) // Un beige grisáceo para el subtítulo
                         )
                     }
                 },
@@ -71,24 +75,19 @@ fun OperatorDashboardScreen(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
                 actions = {
-                    // ---------------------------------------------------------
-                    // AQUÍ ESTÁ LA CORRECCIÓN: LÓGICA DINÁMICA DE ESTADO
-                    // ---------------------------------------------------------
-
-                    // 1. Leemos el estado global (asegúrate de haber creado AppState.kt)
+                    // Lógica de estado Online/Offline
                     val isOnline = AppState.isOnline.value
 
-                    // 2. Configuramos colores y textos según el estado
-                    val chipColor = if (isOnline) Color(0xFFE8F5E9) else MaterialTheme.colorScheme.errorContainer
-                    val dotColor = if (isOnline) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
-                    val textColor = if (isOnline) Color(0xFF1B5E20) else MaterialTheme.colorScheme.onErrorContainer
+                    // Ajustamos los colores del Chip para que se vean bien sobre el café oscuro
+                    val chipColor = if (isOnline) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                    val dotColor = if (isOnline) Color(0xFF2E7D32) else Color(0xFFC62828)
                     val textStatus = if (isOnline) "Online" else "Offline"
+                    val textColor = if (isOnline) Color(0xFF1B5E20) else Color(0xFFB71C1C)
 
-                    // 3. Dibujamos el botón
                     Surface(
                         modifier = Modifier
                             .padding(end = 16.dp)
@@ -100,24 +99,14 @@ fun OperatorDashboardScreen(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // El puntito de color (Verde o Rojo)
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(dotColor, CircleShape)
-                            )
+                            Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
                             Spacer(modifier = Modifier.width(8.dp))
-                            // El texto (Online u Offline)
-                            Text(
-                                text = textStatus,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = textColor
-                            )
+                            Text(text = textStatus, style = MaterialTheme.typography.labelMedium, color = textColor)
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFF8F9FA)
+                    containerColor = DeepChocolate // <--- Barra color Chocolate Oscuro
                 )
             )
         }
@@ -128,17 +117,19 @@ fun OperatorDashboardScreen(
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Saludo con más contraste
             Text(
-                text = "Hola, bienvenido",
+                text = "Bienvenido, Operador",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = DeepChocolate // Texto oscuro fuerte
             )
             Text(
-                text = "¿Qué deseas hacer hoy?",
+                text = "Selecciona una opción para comenzar",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = MilkChocolate, // Texto café medio
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
@@ -166,11 +157,11 @@ fun DashboardCard(item: DashboardItem, onClick: () -> Unit) {
         modifier = Modifier
             .height(160.dp)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = CreamCard // <--- Tarjeta color Crema
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(
             modifier = Modifier
@@ -179,18 +170,19 @@ fun DashboardCard(item: DashboardItem, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // Círculo de fondo para el icono
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
+                    .background(DeepChocolate.copy(alpha = 0.1f)), // Círculo café transparente
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = item.icon,
                     contentDescription = item.title,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
+                    tint = DeepChocolate, // Icono Chocolate oscuro
+                    modifier = Modifier.size(32.dp)
                 )
             }
 
@@ -199,8 +191,8 @@ fun DashboardCard(item: DashboardItem, onClick: () -> Unit) {
             Text(
                 text = item.title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Black,
+                fontWeight = FontWeight.Bold,
+                color = DeepChocolate, // Texto Chocolate oscuro
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
