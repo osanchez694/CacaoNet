@@ -9,16 +9,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.FilterChip
-
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LoginScreen(
     onLogin: (UserType) -> Unit
 ) {
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var selectedUserType by remember { mutableStateOf(UserType.OPERADOR) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    // Instancia de FirebaseAuth
+    val auth = FirebaseAuth.getInstance()
 
     Column(
         modifier = Modifier
@@ -37,9 +41,12 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Usuario") },
+            value = email,
+            onValueChange = {
+                email = it
+                errorMessage = null
+            },
+            label = { Text("Usuario (correo)") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -47,7 +54,10 @@ fun LoginScreen(
 
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                errorMessage = null
+            },
             label = { Text("Contraseña") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
@@ -79,11 +89,41 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         Button(
-            onClick = { onLogin(selectedUserType) },
-            modifier = Modifier.fillMaxWidth()
+            onClick = {
+                val mail = email.trim()
+                val pass = password.trim()
+
+                if (mail.isEmpty() || pass.isEmpty()) {
+                    errorMessage = "Por favor ingresa correo y contraseña."
+                    return@Button
+                }
+
+                isLoading = true
+                auth.signInWithEmailAndPassword(email.trim(), password)
+                    .addOnCompleteListener { task ->
+                        isLoading = false
+                        if (task.isSuccessful) {
+                            onLogin(selectedUserType)
+                        } else {
+                            errorMessage = task.exception?.localizedMessage
+                                ?: "Error al iniciar sesión."
+                        }
+                    }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
         ) {
-            Text("Ingresar")
+            Text(if (isLoading) "Ingresando..." else "Ingresar")
         }
     }
 }

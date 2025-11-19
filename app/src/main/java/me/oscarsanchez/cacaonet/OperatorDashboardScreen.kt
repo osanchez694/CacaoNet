@@ -1,27 +1,46 @@
 package me.oscarsanchez.cacaonet
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OperatorDashboardScreen(
-    goToRegisterDelivery: () -> Unit,
-    goToRegisterQuality: () -> Unit,
-    goToReports: () -> Unit,
-    goToInventory: () -> Unit,
-    goToPayments: () -> Unit,
-    goToOffline: () -> Unit
+    navController: NavController
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Dashboard Operador") },
+                navigationIcon = {
+                    IconButton(
+                        onClick = {
+                            // Primero intento volver atrás
+                            val pudoVolver = navController.popBackStack()
+
+                            // Si no había nada en el back stack, voy al Login
+                            if (!pudoVolver) {
+                                navController.navigate(Screen.Login.route) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                },
                 actions = {
-                    TextButton(onClick = goToOffline) {
+                    TextButton(onClick = { navController.navigate(Screen.Offline.route) }) {
                         Text("Offline")
                     }
                 }
@@ -31,25 +50,41 @@ fun OperatorDashboardScreen(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 24.dp, vertical = 32.dp)
                 .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Button(onClick = goToRegisterDelivery, modifier = Modifier.fillMaxWidth()) {
-                Text("Registrar entrega de cacao")
+            BigButton("Registrar entrega de cacao") {
+                navController.navigate(Screen.RegisterDelivery.route)
             }
-            Button(onClick = goToRegisterQuality, modifier = Modifier.fillMaxWidth()) {
-                Text("Registrar calidad")
+            BigButton("Registrar calidad") {
+                navController.navigate(Screen.RegisterQuality.route)
             }
-            Button(onClick = goToReports, modifier = Modifier.fillMaxWidth()) {
-                Text("Reportes")
+            BigButton("Reportes") {
+                navController.navigate(Screen.Reports.route)
             }
-            Button(onClick = goToInventory, modifier = Modifier.fillMaxWidth()) {
-                Text("Inventario")
+            BigButton("Inventario") {
+                navController.navigate(Screen.Inventory.route)
             }
-            Button(onClick = goToPayments, modifier = Modifier.fillMaxWidth()) {
-                Text("Pagos a productores")
+            BigButton("Pagos a productores") {
+                navController.navigate(Screen.Payments.route)
+            }
+            BigButton("Productores") {
+                navController.navigate(Screen.Producers.route)
             }
         }
+    }
+}
+
+@Composable
+fun BigButton(text: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RoundedCornerShape(40.dp)
+    ) {
+        Text(text)
     }
 }

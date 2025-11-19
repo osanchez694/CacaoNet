@@ -30,10 +30,7 @@ fun RegisterDeliveryScreen(navController: NavController) {
                 title = { Text("Registrar entrega de cacao") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )
