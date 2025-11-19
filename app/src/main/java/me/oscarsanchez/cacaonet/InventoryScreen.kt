@@ -20,11 +20,6 @@ import java.util.*
 
 // ======================================
 //  PANTALLA DE INVENTARIO (NUEVA)
-//    Muestra solo entregas con "Análisis Completo"
-//
-// NOTA IMPORTANTE: Se ELIMINA la definición de 'data class Delivery'
-//                 para evitar el error de Redeclaración.
-//                 Debe estar definida SOLO una vez en el proyecto.
 // ======================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,18 +27,21 @@ fun InventoryScreen(navController: NavController) {
 
     val db = FirebaseFirestore.getInstance()
 
-    // Usa la clase Delivery definida en otro archivo del mismo paquete
     var deliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    fun loadInventoryDeliveries() { // Función de carga filtrada
+    fun loadInventoryDeliveries() { // Función de carga con filtros
         isLoading = true
         errorMessage = null
 
         db.collection("deliveries")
-            // APLICAMOS EL FILTRO REQUERIDO: status == "Análisis Completo"
+            // 1. FILTRO REQUERIDO: status == "Análisis Completo"
             .whereEqualTo("status", "Análisis Completo")
+
+            // 2. FILTRO ADICIONAL DE EJEMPLO: Solo Pendientes de Pago
+            .whereEqualTo("paymentStatus", "Pendiente de Pago") // <-- Filtro añadido aquí
+
             .get()
             .addOnSuccessListener { snapshot ->
                 try {
@@ -116,7 +114,7 @@ fun InventoryScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Inventario (Análisis Completado)") }, // Título de la nueva pantalla
+                title = { Text("Inventario (Análisis Completado)") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -168,7 +166,7 @@ fun InventoryScreen(navController: NavController) {
 }
 
 // ======================================
-//  CARD DE SOLO LECTURA PARA INVENTARIO
+//  CARD DE SOLO LECTURA PARA INVENTARIO (Con formato de Pago)
 // ======================================
 @Composable
 fun DeliveryReadOnlyCard(
@@ -177,7 +175,7 @@ fun DeliveryReadOnlyCard(
     val db = FirebaseFirestore.getInstance()
     var producerName by remember { mutableStateOf<String?>(null) }
 
-    // Lógica para obtener el nombre del productor (usa await() correctamente)
+    // Lógica para obtener el nombre del productor
     LaunchedEffect(delivery.producerId) {
         try {
             val doc = db.collection("producers")
@@ -188,6 +186,12 @@ fun DeliveryReadOnlyCard(
         } catch (e: Exception) {
             producerName = delivery.producerId
         }
+    }
+
+    // 3. Formatear el pago total a dos decimales y formato local
+    val formattedTotalPayment = delivery.totalPayment?.let { payment ->
+        // Esto corrige el problema de los decimales largos
+        String.format(Locale("es", "ES"), "%,.2f", payment)
     }
 
     Card(
@@ -201,6 +205,7 @@ fun DeliveryReadOnlyCard(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text("Lote: ${delivery.lotId}", style = MaterialTheme.typography.titleMedium)
+            // 1. Muestra el nombre cargado, no el ID
             Text("Productor: ${producerName ?: delivery.producerId}")
 
             Divider(modifier = Modifier.padding(vertical = 4.dp))
@@ -212,13 +217,9 @@ fun DeliveryReadOnlyCard(
 
             Divider(modifier = Modifier.padding(vertical = 4.dp))
 
-            Text("Pago total: ${delivery.totalPayment ?: "-"}", style = MaterialTheme.typography.titleSmall)
+            // 3. Muestra el pago con formato
+            Text("Pago total: $${formattedTotalPayment ?: "-"}", style = MaterialTheme.typography.titleSmall)
             Text("Estado de pago: ${delivery.paymentStatus ?: "-"}")
         }
     }
 }
-
-// ======================================
-//  DeliveryEditableCard (La tarjeta anterior sigue siendo funcional)
-// ======================================
-// ... (DeliveryEditableCard debe estar definida en ReportsScreen.kt)

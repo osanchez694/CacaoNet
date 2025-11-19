@@ -81,10 +81,7 @@ fun LoginScreen(
                 selected = selectedUserType == UserType.OPERADOR
             ) { selectedUserType = UserType.OPERADOR }
 
-            UserTypeChip(
-                label = "Comprador",
-                selected = selectedUserType == UserType.COMPRADOR
-            ) { selectedUserType = UserType.COMPRADOR }
+
         }
 
         Spacer(modifier = Modifier.height(24.dp))

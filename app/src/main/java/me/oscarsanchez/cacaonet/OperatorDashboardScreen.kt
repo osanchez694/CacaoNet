@@ -54,12 +54,8 @@ fun OperatorDashboardScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            BigButton("Registrar entrega de cacao") {
-                navController.navigate(Screen.RegisterDelivery.route)
-            }
-            BigButton("Registrar calidad") {
-                navController.navigate(Screen.RegisterQuality.route)
-            }
+
+            // ✅ Solo quedan los botones solicitados (Reportes, Inventario, Pagos, Productores)
             BigButton("Reportes") {
                 navController.navigate(Screen.Reports.route)
             }

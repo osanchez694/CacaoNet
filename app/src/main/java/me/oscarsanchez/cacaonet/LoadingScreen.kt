@@ -26,7 +26,6 @@ fun LoadingScreen(navController: NavController) {
                 when (tipo) {
                     "OPERADOR" -> navController.navigate(Screen.OperatorDashboard.route)
                     "PRODUCTOR" -> navController.navigate(Screen.ProducerDashboard.route)
-                    "COMPRADOR" -> navController.navigate(Screen.BuyerDashboard.route)
                     else -> navController.navigate(Screen.Login.route)
                 }
             }

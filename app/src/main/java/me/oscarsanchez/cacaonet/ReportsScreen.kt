@@ -19,7 +19,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 // =======================
-//  MODELO DE LA ENTREGA
+//  MODELO DE LA ENTREGA (Debe estar definido solo aquí o en un archivo de modelo)
 // =======================
 data class Delivery(
     val id: String = "",
@@ -29,7 +29,7 @@ data class Delivery(
     val lotId: String = "",
     val weightKgBruto: Double? = null,
     val deliveryDate: String? = null,
-    val status: String? = null, // <- Aquí se actualizará el estado
+    val status: String? = null,
 
     // Bloque 2 – operador
     val operatorId: String? = null,
@@ -87,6 +87,7 @@ fun ReportsScreen(navController: NavController) {
                             return l?.toDouble()
                         }
 
+                        // Función robusta para leer cualquier tipo de dato como String
                         fun anyToString(field: String): String? {
                             val v = doc.get(field)
                             return when (v) {
@@ -108,6 +109,7 @@ fun ReportsScreen(navController: NavController) {
                             operatorId = doc.getString("operatorId"),
                             analysisDate = tsToString("analysisDate"),
                             moisturePercentage = num("moisturePercentage"),
+                            // ✅ LÍNEA CORRECTA: Usa anyToString para manejar números o textos
                             fermentationScore = anyToString("fermentationScore"),
                             qualityGrade = doc.getString("qualityGrade"),
 
@@ -119,6 +121,7 @@ fun ReportsScreen(navController: NavController) {
                     deliveries = list
                     isLoading = false
                 } catch (e: Exception) {
+                    // Este catch capturó el error de 'fermentationScore'
                     errorMessage = "Error al leer datos: ${e.localizedMessage}"
                     isLoading = false
                 }
@@ -191,10 +194,12 @@ fun ReportsScreen(navController: NavController) {
 
                                     val netWeight = updated.weightKgBruto?.let { bruto ->
                                         val hum = updated.moisturePercentage ?: 0.0
+                                        // Fórmula: Peso Bruto * (1 - Humedad/100)
                                         bruto * (1 - hum / 100.0)
                                     }
 
                                     val totalPayment = if (netWeight != null && pricePerKg != null) {
+                                        // Fórmula: Peso Neto * Precio por Kg
                                         netWeight * pricePerKg
                                     } else {
                                         updated.totalPayment
@@ -211,7 +216,7 @@ fun ReportsScreen(navController: NavController) {
                                         .update(
                                             mapOf(
                                                 // Bloque 1 - Actualización de estado
-                                                "status" to newStatus, // <- ¡Aquí la corrección!
+                                                "status" to newStatus,
 
                                                 // Bloque 2
                                                 "operatorId" to updated.operatorId,
@@ -227,6 +232,7 @@ fun ReportsScreen(navController: NavController) {
                                             )
                                         )
                                         .addOnSuccessListener {
+                                            // Recargar datos para reflejar los cambios
                                             loadDeliveries()
                                         }
                                 }
@@ -250,7 +256,7 @@ fun DeliveryEditableCard(
 ) {
     val db = FirebaseFirestore.getInstance()
 
-    // 2. **Mostrar el nombre del productor (Lógica existente y comprobada)**
+    // Lógica para mostrar el nombre del productor
     var producerName by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(delivery.producerId) {
@@ -259,11 +265,16 @@ fun DeliveryEditableCard(
                 .document(delivery.producerId)
                 .get()
                 .await()
-            // Obtener el campo 'name'. Si es nulo, usar el ID como fallback.
             producerName = doc.getString("name") ?: delivery.producerId
         } catch (e: Exception) {
             producerName = delivery.producerId
         }
+    }
+
+    // ✅ CORRECCIÓN: Formato para el Pago Total
+    val formattedTotalPayment = delivery.totalPayment?.let { payment ->
+        // Usa String.format para limitar a dos decimales y usar separadores de miles
+        String.format(Locale("es", "ES"), "%,.2f", payment)
     }
 
     // Bloque 2 – estados editables
@@ -293,7 +304,6 @@ fun DeliveryEditableCard(
 
             // ---------- Bloque 1 (solo lectura) ----------
             Text("Lote: ${delivery.lotId}")
-            // Muestra el nombre del productor (Punto 2)
             Text("Productor: ${producerName ?: delivery.producerId}")
             Text("Peso bruto (kg): ${delivery.weightKgBruto ?: "-"}")
             Text("Fecha entrega: ${delivery.deliveryDate ?: "-"}")
@@ -352,13 +362,16 @@ fun DeliveryEditableCard(
 
             // ---------- Bloque 3 (solo mostrado) ----------
             Text("Precio por kg: ${delivery.pricePerKg ?: "-"}")
-            Text("Pago total: ${delivery.totalPayment ?: "-"}")
+
+            // ✅ CORRECCIÓN: Muestra el pago con el formato limpio
+            Text("Pago total: $${formattedTotalPayment ?: "-"}", color = MaterialTheme.colorScheme.primary)
             Text("Estado de pago: ${delivery.paymentStatus ?: "-"}")
 
             Button(
                 onClick = {
                     val updated = delivery.copy(
                         moisturePercentage = moistureText.toDoubleOrNull(),
+                        // Guardar la puntuación de fermentación como texto
                         fermentationScore = fermentation,
                         qualityGrade = quality,
                     )
