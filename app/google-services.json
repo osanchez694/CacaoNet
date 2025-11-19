@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "865333398474",
+    "project_id": "cacaonet-3e026",
+    "storage_bucket": "cacaonet-3e026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865333398474:android:615067f887473279b29d33",
+        "android_client_info": {
+          "package_name": "me.oscarsanchez.cacaonet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDym3XTaRAGPK9vHshEeBxoaOUE7VY3RSY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
