@@ -1,7 +1,6 @@
 package me.oscarsanchez.cacaonet
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -21,11 +20,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
-// --- PALETA DE COLORES INTENSA (CACAO) ---
-val DeepChocolate = Color(0xFF3E2723) // Café muy oscuro (Barra superior)
-val MilkChocolate = Color(0xFF5D4037) // Café medio (Textos)
-val LatteBackground = Color(0xFFD7CCC8) // Fondo de la pantalla (Café con leche)
-val CreamCard = Color(0xFFFFF8E1)       // Fondo de las tarjetas (Crema suave)
+// --- PALETA DE COLORES ---
+val DeepChocolate = Color(0xFF3E2723)
+val MilkChocolate = Color(0xFF5D4037)
+val LatteBackground = Color(0xFFD7CCC8)
+val CreamCard = Color(0xFFFFF8E1)
 
 data class DashboardItem(
     val title: String,
@@ -45,8 +44,11 @@ fun OperatorDashboardScreen(
         DashboardItem("Productores", Icons.Default.Person, Screen.Producers.route)
     )
 
+    // LECTURA REACTIVA: Compose repintará esto automáticamente cuando AppState cambie
+    val isOnline = AppState.isOnline.value
+
     Scaffold(
-        containerColor = LatteBackground, // <--- Fondo color Café con Leche
+        containerColor = LatteBackground,
         topBar = {
             TopAppBar(
                 title = {
@@ -55,12 +57,12 @@ fun OperatorDashboardScreen(
                             text = "CacaoNet",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White // Texto blanco sobre fondo oscuro
+                            color = Color.White
                         )
                         Text(
                             text = "Panel de Operador",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFBCAAA4) // Un beige grisáceo para el subtítulo
+                            color = Color(0xFFBCAAA4)
                         )
                     }
                 },
@@ -79,21 +81,18 @@ fun OperatorDashboardScreen(
                     }
                 },
                 actions = {
-                    // Lógica de estado Online/Offline
-                    val isOnline = AppState.isOnline.value
-
-                    // Ajustamos los colores del Chip para que se vean bien sobre el café oscuro
+                    // Lógica visual del estado
                     val chipColor = if (isOnline) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
                     val dotColor = if (isOnline) Color(0xFF2E7D32) else Color(0xFFC62828)
                     val textStatus = if (isOnline) "Online" else "Offline"
                     val textColor = if (isOnline) Color(0xFF1B5E20) else Color(0xFFB71C1C)
 
                     Surface(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .clickable { navController.navigate(Screen.Offline.route) },
+                        modifier = Modifier.padding(end = 16.dp),
                         shape = RoundedCornerShape(16.dp),
                         color = chipColor
+                        // ELIMINADO: .clickable { navigate(Offline) }
+                        // RAZÓN: Queremos que la app siga funcionando, no que nos lleve a una pantalla de error.
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -106,7 +105,7 @@ fun OperatorDashboardScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepChocolate // <--- Barra color Chocolate Oscuro
+                    containerColor = DeepChocolate
                 )
             )
         }
@@ -117,19 +116,37 @@ fun OperatorDashboardScreen(
                 .padding(horizontal = 16.dp)
                 .fillMaxSize()
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            // Aviso extra si está offline (Opcional, pero útil para el usuario)
+            if (!isOnline) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    color = Color(0xFFB71C1C),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Modo Offline: Los datos se guardarán en el dispositivo.",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(8.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
-            // Saludo con más contraste
             Text(
                 text = "Bienvenido, Operador",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = DeepChocolate // Texto oscuro fuerte
+                color = DeepChocolate
             )
             Text(
                 text = "Selecciona una opción para comenzar",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MilkChocolate, // Texto café medio
+                color = MilkChocolate,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
@@ -141,6 +158,7 @@ fun OperatorDashboardScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(menuItems) { item ->
+                    // IMPORTANTE: Aquí permitimos navegar SIEMPRE, haya o no internet.
                     DashboardCard(item) {
                         navController.navigate(item.route)
                     }
@@ -159,7 +177,7 @@ fun DashboardCard(item: DashboardItem, onClick: () -> Unit) {
             .fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = CreamCard // <--- Tarjeta color Crema
+            containerColor = CreamCard
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
@@ -170,18 +188,17 @@ fun DashboardCard(item: DashboardItem, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Círculo de fondo para el icono
             Box(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(CircleShape)
-                    .background(DeepChocolate.copy(alpha = 0.1f)), // Círculo café transparente
+                    .background(DeepChocolate.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = item.icon,
                     contentDescription = item.title,
-                    tint = DeepChocolate, // Icono Chocolate oscuro
+                    tint = DeepChocolate,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -192,7 +209,7 @@ fun DashboardCard(item: DashboardItem, onClick: () -> Unit) {
                 text = item.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = DeepChocolate, // Texto Chocolate oscuro
+                color = DeepChocolate,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
