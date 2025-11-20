@@ -45,7 +45,7 @@ data class Delivery(
 )
 
 // =======================
-//  PANTALLA PRINCIPAL (ReportsScreen)
+//  PANTALLA PRINCIPAL
 // =======================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,27 +53,19 @@ fun ReportsScreen(navController: NavController) {
 
     val db = FirebaseFirestore.getInstance()
 
-    // Datos principales
     var allDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var filteredDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
-
-    // Mapa para guardar los nombres: { "ID_USUARIO" : "Juan Perez" }
     var producersMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
-    // Estados de UI
     var isLoading by remember { mutableStateOf(true) }
     var searchText by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // ---------------------------------------------------------
-    // 1. FUNCIÓN PARA CARGAR PRODUCTORES (PARA PODER BUSCARLOS)
-    // ---------------------------------------------------------
     fun loadProducersMap(onComplete: () -> Unit) {
         db.collection("producers").get()
             .addOnSuccessListener { snapshot ->
                 val tempMap = mutableMapOf<String, String>()
                 snapshot.documents.forEach { doc ->
-                    // Busca el nombre en varios campos posibles
                     val name = doc.getString("producerName")
                         ?: doc.getString("nombre")
                         ?: doc.getString("name")
@@ -81,7 +73,6 @@ fun ReportsScreen(navController: NavController) {
                     tempMap[doc.id] = name
                 }
 
-                // También cargamos users por si acaso
                 db.collection("users").get().addOnSuccessListener { userSnap ->
                     userSnap.documents.forEach { doc ->
                         if (!tempMap.containsKey(doc.id)) {
@@ -96,14 +87,10 @@ fun ReportsScreen(navController: NavController) {
             .addOnFailureListener { onComplete() }
     }
 
-    // ---------------------------------------------------------
-    // 2. FUNCIÓN PARA CARGAR ENTREGAS
-    // ---------------------------------------------------------
     fun loadDeliveries() {
         isLoading = true
         errorMessage = null
 
-        // Primero cargamos el mapa de nombres, luego las entregas
         loadProducersMap {
             db.collection("deliveries")
                 .orderBy("deliveryDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
@@ -111,6 +98,7 @@ fun ReportsScreen(navController: NavController) {
                 .addOnSuccessListener { snapshot ->
                     try {
                         val list = snapshot.documents.map { doc ->
+
                             fun num(field: String): Double? {
                                 val d = doc.getDouble(field)
                                 if (d != null) return d
@@ -126,7 +114,7 @@ fun ReportsScreen(navController: NavController) {
                                 deliveryDate = doc.get("deliveryDate"),
                                 status = doc.getString("status"),
                                 moisturePercentage = num("moisturePercentage"),
-                                fermentationScore = doc.getString("fermentationScore") ?: doc.get("fermentationScore")?.toString(),
+                                fermentationScore = doc.get("fermentationScore")?.toString(),
                                 qualityGrade = doc.getString("qualityGrade"),
                                 pricePerKg = num("pricePerKg"),
                                 totalPayment = num("totalPayment"),
@@ -134,7 +122,6 @@ fun ReportsScreen(navController: NavController) {
                             )
                         }
                         allDeliveries = list
-                        filteredDeliveries = list // Inicialmente mostramos todo
                         isLoading = false
                     } catch (e: Exception) {
                         errorMessage = "Error leyendo datos: ${e.message}"
@@ -152,30 +139,26 @@ fun ReportsScreen(navController: NavController) {
         loadDeliveries()
     }
 
-    // ---------------------------------------------------------
-    // 3. LÓGICA DE FILTRADO (BUSCADOR POTENTE)
-    // ---------------------------------------------------------
+    // Filtro: solo pendientes + buscador
     LaunchedEffect(searchText, allDeliveries, producersMap) {
+        val pendingDeliveries = allDeliveries.filter { it.status != "Análisis Completo" }
+
         if (searchText.isBlank()) {
-            filteredDeliveries = allDeliveries
+            filteredDeliveries = pendingDeliveries
         } else {
             val query = searchText.lowercase()
-            filteredDeliveries = allDeliveries.filter { delivery ->
 
-                // A) Buscar por LOTE
+            filteredDeliveries = pendingDeliveries.filter { delivery ->
                 val matchLote = delivery.lotId.lowercase().contains(query)
 
-                // B) Buscar por NOMBRE DEL PRODUCTOR (Usando el mapa)
                 val producerName = producersMap[delivery.producerId]?.lowercase() ?: ""
                 val matchName = producerName.contains(query)
 
-                // C) Buscar por FECHA (Formateada)
                 val date = (delivery.deliveryDate as? Timestamp)?.toDate()
                 val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES"))
                 val dateStr = if (date != null) dateFormat.format(date) else ""
-                val matchDate = dateStr.contains(query) // Ej. "20/11"
+                val matchDate = dateStr.contains(query)
 
-                // Si coincide cualquiera de los 3, se muestra
                 matchLote || matchName || matchDate
             }
         }
@@ -198,23 +181,30 @@ fun ReportsScreen(navController: NavController) {
                     }
                 )
 
-                // BARRA DE BÚSQUEDA MEJORADA
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = { searchText = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    placeholder = { Text("Buscar productor, fecha o lote...") }, // <--- INDICACIÓN CLARA
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .heightIn(min = 48.dp),
+                    placeholder = { Text("Buscar productor, fecha o lote...") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = if (searchText.isNotEmpty()) {
-                        { IconButton(onClick = { searchText = "" }) { Icon(Icons.Default.Clear, null) } }
+                        {
+                            IconButton(onClick = { searchText = "" }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
+                            }
+                        }
                     } else null,
-                    shape = RoundedCornerShape(12.dp),
                     singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        focusedContainerColor = Color(0xFFF5F2FF),
+                        unfocusedContainerColor = Color(0xFFF5F2FF),
+                        disabledContainerColor = Color(0xFFF5F2FF),
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent
                     )
                 )
             }
@@ -248,45 +238,41 @@ fun ReportsScreen(navController: NavController) {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(filteredDeliveries) { delivery ->
-                            // Obtenemos el nombre del mapa para pasarlo a la tarjeta
                             val name = producersMap[delivery.producerId]
                                 ?: if (delivery.producerId.length < 10) delivery.producerId else "Sin Nombre"
 
                             DeliveryEditableCard(
                                 delivery = delivery,
-                                producerNameResolved = name, // Pasamos el nombre ya resuelto
-                                onSave = { updated ->
-                                    // --- LÓGICA DE GUARDADO ---
-                                    val pricePerKg = when (updated.qualityGrade) {
-                                        "Exportación" -> 12500.0
-                                        "Nacional Estándar" -> 9500.0
-                                        "Rechazo" -> 1000.0
-                                        else -> updated.pricePerKg ?: 0.0
-                                    }
+                                producerNameResolved = name
+                            ) { updated ->
 
-                                    val netWeight = updated.weightKgBruto?.let { bruto ->
-                                        val hum = updated.moisturePercentage ?: 0.0
-                                        bruto * (1 - hum / 100.0)
-                                    }
-
-                                    val totalPayment = if (netWeight != null) netWeight * pricePerKg else updated.totalPayment
-
-                                    db.collection("deliveries")
-                                        .document(updated.id)
-                                        .update(
-                                            mapOf(
-                                                "status" to "Análisis Completo",
-                                                "moisturePercentage" to updated.moisturePercentage,
-                                                "fermentationScore" to updated.fermentationScore,
-                                                "qualityGrade" to updated.qualityGrade,
-                                                "pricePerKg" to pricePerKg,
-                                                "totalPayment" to totalPayment,
-                                                "analysisDate" to Timestamp.now()
-                                            )
-                                        )
-                                        .addOnSuccessListener { loadDeliveries() }
+                                // 1) Precio por kg según clasificación
+                                val pricePerKg = when (updated.qualityGrade) {
+                                    "Exportación" -> 12_500.0
+                                    "Nacional Estándar" -> 9_500.0
+                                    "Rechazo" -> 1_000.0
+                                    else -> updated.pricePerKg ?: 0.0
                                 }
-                            )
+
+                                // 2) TOTAL = PESO BRUTO * PRECIO
+                                val totalPayment =
+                                    (updated.weightKgBruto ?: 0.0) * pricePerKg
+
+                                db.collection("deliveries")
+                                    .document(updated.id)
+                                    .update(
+                                        mapOf(
+                                            "status" to "Análisis Completo",
+                                            "moisturePercentage" to updated.moisturePercentage,
+                                            "fermentationScore" to updated.fermentationScore,
+                                            "qualityGrade" to updated.qualityGrade,
+                                            "pricePerKg" to pricePerKg,
+                                            "totalPayment" to totalPayment,
+                                            "analysisDate" to Timestamp.now()
+                                        )
+                                    )
+                                    .addOnSuccessListener { loadDeliveries() }
+                            }
                         }
                     }
                 }
@@ -296,16 +282,15 @@ fun ReportsScreen(navController: NavController) {
 }
 
 // ======================================
-//  TARJETA DE DISEÑO MEJORADO
+//  TARJETA EDITABLE (CON PESO NETO)
 // ======================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeliveryEditableCard(
     delivery: Delivery,
-    producerNameResolved: String, // Recibimos el nombre desde afuera
+    producerNameResolved: String,
     onSave: (Delivery) -> Unit
 ) {
-    // Formatear fecha
     val dateString = remember(delivery.deliveryDate) {
         try {
             val date = (delivery.deliveryDate as? Timestamp)?.toDate()
@@ -317,22 +302,27 @@ fun DeliveryEditableCard(
         } catch (e: Exception) { "Error fecha" }
     }
 
-    // Formatear moneda
     val moneyFormat = remember(delivery.totalPayment) {
         try { String.format(Locale("es", "CO"), "$%,.0f", delivery.totalPayment ?: 0.0) } catch (e: Exception) { "$0" }
     }
 
-    // Estados de edición local
     var moistureText by remember(delivery.id) { mutableStateOf(delivery.moisturePercentage?.toString() ?: "") }
     var fermentation by remember(delivery.id) { mutableStateOf(delivery.fermentationScore ?: "") }
     var quality by remember(delivery.id) { mutableStateOf(delivery.qualityGrade ?: "") }
 
+    // 👉 PESO NETO calculado en vivo según lo que escriban en humedad
+    val pesoNeto = remember(delivery.weightKgBruto, moistureText) {
+        val bruto = delivery.weightKgBruto ?: 0.0
+        val hum = moistureText.toDoubleOrNull() ?: 0.0
+        bruto * (1 - hum / 100.0)
+    }
+    val pesoNetoTexto = String.format(Locale("es", "CO"), "%.1f", pesoNeto)
+
     val qualityOptions = listOf("Exportación", "Nacional Estándar", "Rechazo")
     var expanded by remember { mutableStateOf(false) }
 
-    // Colores
     val isCompleted = delivery.status == "Análisis Completo"
-    val headerColor = if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFFFF3E0) // Verde suave o Naranja suave
+    val headerColor = if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
     val statusText = if (isCompleted) "COMPLETADO" else "PENDIENTE DE ANÁLISIS"
     val statusTextColor = if (isCompleted) Color(0xFF2E7D32) else Color(0xFFE65100)
 
@@ -344,7 +334,6 @@ fun DeliveryEditableCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
 
-            // --- HEADER ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -361,16 +350,13 @@ fun DeliveryEditableCard(
                 Text(statusText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = statusTextColor)
             }
 
-            // --- CUERPO ---
             Column(modifier = Modifier.padding(16.dp)) {
 
-                // Información Principal
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Person, null, tint = Color.Gray)
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text("Productor", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                        // USAMOS EL NOMBRE QUE VIENE DEL FILTRO
                         Text(producerNameResolved, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                         Text("Lote: ${delivery.lotId}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     }
@@ -386,7 +372,6 @@ fun DeliveryEditableCard(
 
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-                // Inputs de Análisis
                 Text("Datos de Calidad", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -405,6 +390,19 @@ fun DeliveryEditableCard(
                         label = { Text("Ferment.") },
                         modifier = Modifier.weight(1f),
                         singleLine = true
+                    )
+                }
+
+                // 🔹 NUEVA LÍNEA: PESO NETO en Reportes
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = "Peso Neto: $pesoNetoTexto kg",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
                     )
                 }
 
@@ -434,7 +432,6 @@ fun DeliveryEditableCard(
                 }
             }
 
-            // --- FOOTER DE PAGO ---
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
