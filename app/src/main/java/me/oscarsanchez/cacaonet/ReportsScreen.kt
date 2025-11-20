@@ -244,7 +244,6 @@ fun ReportsScreen(navController: NavController) {
         }
     }
 }
-
 // ======================================
 //  CARD EDITABLE PARA CADA ENTREGA (DeliveryEditableCard)
 // ======================================
@@ -256,38 +255,56 @@ fun DeliveryEditableCard(
 ) {
     val db = FirebaseFirestore.getInstance()
 
-    // Lógica para mostrar el nombre del productor
-    var producerName by remember { mutableStateOf<String?>(null) }
+    // Variable para el nombre
+    var producerName by remember { mutableStateOf("Cargando...") }
 
+    // EFECTO DE CARGA
     LaunchedEffect(delivery.producerId) {
+        // 1. PROTECCIÓN CONTRA CRASH: Si el ID está vacío, no hacemos la búsqueda
+        if (delivery.producerId.isNullOrBlank()) {
+            producerName = "Sin ID de productor"
+            return@LaunchedEffect
+        }
+
         try {
-            val doc = db.collection("producers")
+            // 2. Buscar en la colección "producers"
+            val document = db.collection("producers")
                 .document(delivery.producerId)
                 .get()
                 .await()
-            producerName = doc.getString("name") ?: delivery.producerId
+
+            if (document.exists()) {
+                // 3. SOLUCIÓN: Buscamos el campo exacto que tienes en la foto ("producerName")
+                val nameFromDb = document.getString("producerName") // <--- ESTE ES EL TUYO
+                    ?: document.getString("nombre")
+                    ?: document.getString("name")
+                    ?: document.getString("fincaName") // Por si acaso quieres mostrar la finca
+
+                producerName = nameFromDb ?: "Nombre oculto"
+            } else {
+                // Intento de respaldo en users si no está en producers
+                val userDoc = db.collection("users").document(delivery.producerId).get().await()
+                if (userDoc.exists()) {
+                    producerName = userDoc.getString("nombre") ?: "Usuario sin datos"
+                } else {
+                    producerName = "Productor no encontrado"
+                }
+            }
         } catch (e: Exception) {
-            producerName = delivery.producerId
+            // Si falla por internet u otro error, no cerramos la app, solo mostramos error
+            producerName = "Error de conexión"
         }
     }
 
-    // ✅ CORRECCIÓN: Formato para el Pago Total
-    val formattedTotalPayment = delivery.totalPayment?.let { payment ->
-        // Usa String.format para limitar a dos decimales y usar separadores de miles
-        String.format(Locale("es", "ES"), "%,.2f", payment)
+    // Formateo de moneda seguro
+    val formattedTotalPayment = delivery.totalPayment?.let {
+        try { String.format(Locale("es", "CO"), "%,.0f", it) } catch (e: Exception) { it.toString() }
     }
 
-    // Bloque 2 – estados editables
-    var moistureText by remember(delivery.id) {
-        mutableStateOf(delivery.moisturePercentage?.toString() ?: "")
-    }
-    var fermentation by remember(delivery.id) {
-        mutableStateOf(delivery.fermentationScore ?: "")
-    }
-    var quality by remember(delivery.id) {
-        mutableStateOf(delivery.qualityGrade ?: "")
-    }
-
+    // Estados locales para edición
+    var moistureText by remember(delivery.id) { mutableStateOf(delivery.moisturePercentage?.toString() ?: "") }
+    var fermentation by remember(delivery.id) { mutableStateOf(delivery.fermentationScore ?: "") }
+    var quality by remember(delivery.id) { mutableStateOf(delivery.qualityGrade ?: "") }
     val qualityOptions = listOf("Exportación", "Nacional Estándar", "Rechazo")
     var expanded by remember { mutableStateOf(false) }
 
@@ -295,28 +312,31 @@ fun DeliveryEditableCard(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
+        Column(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
 
-            // ---------- Bloque 1 (solo lectura) ----------
-            Text("Lote: ${delivery.lotId}")
-            Text("Productor: ${producerName ?: delivery.producerId}")
+            // --- DATOS ---
+            Text("Lote: ${delivery.lotId}", style = MaterialTheme.typography.bodySmall)
+
+            // AQUÍ SALDRÁ EL NOMBRE (O "Sin ID" si estaba vacío, evitando el crash)
+            Text(
+                text = "Productor: $producerName",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+
             Text("Peso bruto (kg): ${delivery.weightKgBruto ?: "-"}")
             Text("Fecha entrega: ${delivery.deliveryDate ?: "-"}")
             Text("Estado: ${delivery.status ?: "-"}")
 
             Divider(modifier = Modifier.padding(vertical = 4.dp))
 
-            // ---------- Bloque 2 (editable por operador) ----------
+            // --- EDICIÓN ---
             OutlinedTextField(
                 value = moistureText,
                 onValueChange = { moistureText = it },
                 label = { Text("Humedad (%)") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
             )
 
             OutlinedTextField(
@@ -326,7 +346,6 @@ fun DeliveryEditableCard(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Clasificación Final - Dropdown Menu
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
@@ -340,19 +359,11 @@ fun DeliveryEditableCard(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
+                ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     qualityOptions.forEach { selectionOption ->
                         DropdownMenuItem(
                             text = { Text(selectionOption) },
-                            onClick = {
-                                quality = selectionOption
-                                expanded = false
-                            },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                            onClick = { quality = selectionOption; expanded = false }
                         )
                     }
                 }
@@ -360,18 +371,14 @@ fun DeliveryEditableCard(
 
             Divider(modifier = Modifier.padding(vertical = 4.dp))
 
-            // ---------- Bloque 3 (solo mostrado) ----------
-            Text("Precio por kg: ${delivery.pricePerKg ?: "-"}")
-
-            // ✅ CORRECCIÓN: Muestra el pago con el formato limpio
-            Text("Pago total: $${formattedTotalPayment ?: "-"}", color = MaterialTheme.colorScheme.primary)
+            Text("Precio/kg: $${String.format("%,.0f", delivery.pricePerKg ?: 0)}")
+            Text("Pago total: $${formattedTotalPayment ?: "-"}", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
             Text("Estado de pago: ${delivery.paymentStatus ?: "-"}")
 
             Button(
                 onClick = {
                     val updated = delivery.copy(
                         moisturePercentage = moistureText.toDoubleOrNull(),
-                        // Guardar la puntuación de fermentación como texto
                         fermentationScore = fermentation,
                         qualityGrade = quality,
                     )
