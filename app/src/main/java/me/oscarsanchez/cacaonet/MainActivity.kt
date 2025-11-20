@@ -62,6 +62,9 @@ class MainActivity : ComponentActivity() {
                         composable(Screen.Payments.route) {
                             PaymentsScreen(navController)
                         }
+                        composable("registerSale") {
+                            RegisterSaleScreen(navController = navController)
+                        }
 
                         composable(Screen.Producers.route) {
                             ProducersScreen(navController)
