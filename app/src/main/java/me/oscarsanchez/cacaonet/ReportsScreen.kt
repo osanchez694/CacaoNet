@@ -42,6 +42,8 @@ data class Delivery(
     val pricePerKg: Double? = null,
     val totalPayment: Double? = null,
     val paymentStatus: String? = null,
+    // 🔹 Nuevo campo en el modelo
+    val weightKgNeto: Double? = null,
 )
 
 // =======================
@@ -93,7 +95,10 @@ fun ReportsScreen(navController: NavController) {
 
         loadProducersMap {
             db.collection("deliveries")
-                .orderBy("deliveryDate", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .orderBy(
+                    "deliveryDate",
+                    com.google.firebase.firestore.Query.Direction.DESCENDING
+                )
                 .get()
                 .addOnSuccessListener { snapshot ->
                     try {
@@ -119,6 +124,8 @@ fun ReportsScreen(navController: NavController) {
                                 pricePerKg = num("pricePerKg"),
                                 totalPayment = num("totalPayment"),
                                 paymentStatus = doc.getString("paymentStatus"),
+                                // 🔹 lee peso neto si ya existe
+                                weightKgNeto = num("weightKg_Neto"),
                             )
                         }
                         allDeliveries = list
@@ -193,7 +200,10 @@ fun ReportsScreen(navController: NavController) {
                     trailingIcon = if (searchText.isNotEmpty()) {
                         {
                             IconButton(onClick = { searchText = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
+                                Icon(
+                                    Icons.Default.Clear,
+                                    contentDescription = "Limpiar búsqueda"
+                                )
                             }
                         }
                     } else null,
@@ -220,12 +230,24 @@ fun ReportsScreen(navController: NavController) {
                 isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
 
                 errorMessage != null -> {
-                    Text(errorMessage!!, modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.error)
+                    Text(
+                        errorMessage!!,
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
 
                 filteredDeliveries.isEmpty() -> {
-                    Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(50.dp))
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(50.dp)
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("No se encontraron resultados", color = Color.Gray)
                     }
@@ -254,9 +276,13 @@ fun ReportsScreen(navController: NavController) {
                                     else -> updated.pricePerKg ?: 0.0
                                 }
 
-                                // 2) TOTAL = PESO BRUTO * PRECIO
-                                val totalPayment =
-                                    (updated.weightKgBruto ?: 0.0) * pricePerKg
+                                // 2) Peso Neto = Peso Bruto * (1 - humedad/100)
+                                val bruto = updated.weightKgBruto ?: 0.0
+                                val humedad = updated.moisturePercentage ?: 0.0
+                                val neto = bruto * (1 - humedad / 100.0)
+
+                                // 3) TOTAL PAGADO: Peso BRUTO × Precio
+                                val totalPayment = bruto * pricePerKg
 
                                 db.collection("deliveries")
                                     .document(updated.id)
@@ -268,7 +294,9 @@ fun ReportsScreen(navController: NavController) {
                                             "qualityGrade" to updated.qualityGrade,
                                             "pricePerKg" to pricePerKg,
                                             "totalPayment" to totalPayment,
-                                            "analysisDate" to Timestamp.now()
+                                            "analysisDate" to Timestamp.now(),
+                                            // 🔹 se guarda el peso neto en Firestore
+                                            "weightKg_Neto" to neto,
                                         )
                                     )
                                     .addOnSuccessListener { loadDeliveries() }
@@ -299,18 +327,30 @@ fun DeliveryEditableCard(
             } else {
                 "Sin fecha"
             }
-        } catch (e: Exception) { "Error fecha" }
+        } catch (e: Exception) {
+            "Error fecha"
+        }
     }
 
     val moneyFormat = remember(delivery.totalPayment) {
-        try { String.format(Locale("es", "CO"), "$%,.0f", delivery.totalPayment ?: 0.0) } catch (e: Exception) { "$0" }
+        try {
+            String.format(Locale("es", "CO"), "$%,.0f", delivery.totalPayment ?: 0.0)
+        } catch (e: Exception) {
+            "$0"
+        }
     }
 
-    var moistureText by remember(delivery.id) { mutableStateOf(delivery.moisturePercentage?.toString() ?: "") }
-    var fermentation by remember(delivery.id) { mutableStateOf(delivery.fermentationScore ?: "") }
-    var quality by remember(delivery.id) { mutableStateOf(delivery.qualityGrade ?: "") }
+    var moistureText by remember(delivery.id) {
+        mutableStateOf(delivery.moisturePercentage?.toString() ?: "")
+    }
+    var fermentation by remember(delivery.id) {
+        mutableStateOf(delivery.fermentationScore ?: "")
+    }
+    var quality by remember(delivery.id) {
+        mutableStateOf(delivery.qualityGrade ?: "")
+    }
 
-    // 👉 PESO NETO calculado en vivo según lo que escriban en humedad
+    // 👉 Peso Neto en vivo (según lo que escriben en humedad)
     val pesoNeto = remember(delivery.weightKgBruto, moistureText) {
         val bruto = delivery.weightKgBruto ?: 0.0
         val hum = moistureText.toDoubleOrNull() ?: 0.0
@@ -343,11 +383,26 @@ fun DeliveryEditableCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.DateRange, null, modifier = Modifier.size(16.dp), tint = statusTextColor)
+                    Icon(
+                        Icons.Outlined.DateRange,
+                        null,
+                        modifier = Modifier.size(16.dp),
+                        tint = statusTextColor
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(dateString, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = statusTextColor)
+                    Text(
+                        dateString,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = statusTextColor
+                    )
                 }
-                Text(statusText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = statusTextColor)
+                Text(
+                    statusText,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = statusTextColor
+                )
             }
 
             Column(modifier = Modifier.padding(16.dp)) {
@@ -356,23 +411,50 @@ fun DeliveryEditableCard(
                     Icon(Icons.Outlined.Person, null, tint = Color.Gray)
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("Productor", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                        Text(producerNameResolved, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                        Text("Lote: ${delivery.lotId}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Text(
+                            "Productor",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                        Text(
+                            producerNameResolved,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                        Text(
+                            "Lote: ${delivery.lotId}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
                     }
                     Spacer(modifier = Modifier.weight(1f))
 
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                        Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text("Peso Bruto", style = MaterialTheme.typography.labelSmall)
-                            Text("${delivery.weightKgBruto ?: 0} kg", fontWeight = FontWeight.Bold)
+                            Text(
+                                "${delivery.weightKgBruto ?: 0} kg",
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
 
-                Text("Datos de Calidad", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "Datos de Calidad",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -393,7 +475,7 @@ fun DeliveryEditableCard(
                     )
                 }
 
-                // 🔹 NUEVA LÍNEA: PESO NETO en Reportes
+                // 🔹 Peso Neto visible en Reportes
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -418,14 +500,22 @@ fun DeliveryEditableCard(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Clasificación Final") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
                         qualityOptions.forEach { selectionOption ->
                             DropdownMenuItem(
                                 text = { Text(selectionOption) },
-                                onClick = { quality = selectionOption; expanded = false }
+                                onClick = {
+                                    quality = selectionOption
+                                    expanded = false
+                                }
                             )
                         }
                     }
@@ -437,9 +527,19 @@ fun DeliveryEditableCard(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Precio Base:", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    Text("$${String.format("%,.0f", delivery.pricePerKg ?: 0.0)} /kg", style = MaterialTheme.typography.bodySmall)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Precio Base:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                    Text(
+                        "$${String.format("%,.0f", delivery.pricePerKg ?: 0.0)} /kg",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
@@ -447,8 +547,19 @@ fun DeliveryEditableCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("TOTAL A PAGAR", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                    Text(moneyFormat, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold), color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "TOTAL A PAGAR",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    Text(
+                        moneyFormat,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold
+                        ),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

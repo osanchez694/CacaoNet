@@ -121,6 +121,8 @@ fun InventoryScreen(navController: NavController) {
                                 pricePerKg = num("pricePerKg"),
                                 totalPayment = num("totalPayment"),
                                 paymentStatus = doc.getString("paymentStatus"),
+                                // 🔹 Leer peso neto desde Firestore
+                                weightKgNeto = num("weightKg_Neto"),
                             )
                         }
                         allDeliveries = list
@@ -242,7 +244,7 @@ fun InventoryScreen(navController: NavController) {
 }
 
 // ====================================================================
-//  TARJETA INVENTARIO – NUEVO CAMPO "PESO NETO"
+//  TARJETA INVENTARIO – MUESTRA PESO NETO
 // ====================================================================
 @Composable
 fun InventoryCard(delivery: Delivery) {
@@ -270,18 +272,24 @@ fun InventoryCard(delivery: Delivery) {
             SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(it)
         } ?: delivery.analysisDate ?: "Sin fecha"
 
-    // 👉 TOTAL PAGADO: se mantiene COMO ANTES (usa totalPayment de Firestore)
+    // TOTAL PAGADO: igual que antes (usa totalPayment guardado)
     val moneyFormat = String.format(
         Locale("es", "CO"),
         "$%,.0f",
         delivery.totalPayment ?: 0.0
     )
 
-    // 👉 NUEVO: PESO NETO = pesoBruto * (1 - humedad/100)
-    val pesoNeto = remember(delivery.weightKgBruto, delivery.moisturePercentage) {
-        val bruto = delivery.weightKgBruto ?: 0.0
-        val hum = delivery.moisturePercentage ?: 0.0
-        bruto * (1 - hum / 100.0)
+    // Peso Neto: si viene de Firestore se usa; si no, se calcula
+    val pesoNeto = remember(
+        delivery.weightKgNeto,
+        delivery.weightKgBruto,
+        delivery.moisturePercentage
+    ) {
+        delivery.weightKgNeto ?: run {
+            val bruto = delivery.weightKgBruto ?: 0.0
+            val hum = delivery.moisturePercentage ?: 0.0
+            bruto * (1 - hum / 100.0)
+        }
     }
     val pesoNetoTexto = String.format(Locale("es", "CO"), "%.1f", pesoNeto)
 
@@ -385,7 +393,7 @@ fun InventoryCard(delivery: Delivery) {
 
                 Spacer(Modifier.height(8.dp))
 
-                // 🔹 NUEVA FILA: PESO NETO CALCULADO
+                // 🔹 Peso Neto debajo de los datos de análisis
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
