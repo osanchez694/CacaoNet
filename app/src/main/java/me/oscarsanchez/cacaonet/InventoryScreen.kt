@@ -27,6 +27,9 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
+// =======================
+//  INVENTARIO (solo Análisis Completo)
+// =======================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryScreen(navController: NavController) {
@@ -35,13 +38,13 @@ fun InventoryScreen(navController: NavController) {
 
     var allDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var filteredDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
-
     var producersMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var searchText by remember { mutableStateOf("") }
 
+    // ----- Cargar nombres de productores -----
     fun loadProducersMap(onComplete: () -> Unit) {
         db.collection("producers").get()
             .addOnSuccessListener { snapshot ->
@@ -59,6 +62,7 @@ fun InventoryScreen(navController: NavController) {
             .addOnFailureListener { onComplete() }
     }
 
+    // ----- Cargar entregas con análisis completo -----
     fun loadInventoryDeliveries() {
         isLoading = true
         errorMessage = null
@@ -115,7 +119,7 @@ fun InventoryScreen(navController: NavController) {
                                 fermentationScore = anyToString("fermentationScore"),
                                 qualityGrade = doc.getString("qualityGrade"),
                                 pricePerKg = num("pricePerKg"),
-                                totalPayment = num("totalPayment"),
+                                totalPayment = num("totalPayment"), // ya no lo usamos para mostrar
                                 paymentStatus = doc.getString("paymentStatus"),
                             )
                         }
@@ -135,6 +139,7 @@ fun InventoryScreen(navController: NavController) {
 
     LaunchedEffect(Unit) { loadInventoryDeliveries() }
 
+    // ----- Filtro por buscador -----
     LaunchedEffect(searchText, allDeliveries, producersMap) {
         if (searchText.isBlank()) {
             filteredDeliveries = allDeliveries
@@ -142,9 +147,7 @@ fun InventoryScreen(navController: NavController) {
             val q = searchText.lowercase()
 
             filteredDeliveries = allDeliveries.filter { d ->
-
                 val matchLote = d.lotId.lowercase().contains(q)
-
                 val prodName = producersMap[d.producerId]?.lowercase() ?: ""
                 val matchName = prodName.contains(q)
 
@@ -215,7 +218,6 @@ fun InventoryScreen(navController: NavController) {
                 .fillMaxSize()
         ) {
             when {
-
                 isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
 
                 errorMessage != null -> Text(
@@ -225,7 +227,9 @@ fun InventoryScreen(navController: NavController) {
                 )
 
                 else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredDeliveries) { delivery ->
@@ -238,7 +242,7 @@ fun InventoryScreen(navController: NavController) {
 }
 
 // ====================================================================
-//  TARJETA COMPLETA Y CORREGIDA — TODOS LOS PESOS SE VEN IGUALES
+//  TARJETA INVENTARIO – TOTAL CALCULADO: PESO BRUTO * PRECIO POR KG
 // ====================================================================
 @Composable
 fun InventoryCard(delivery: Delivery) {
@@ -266,8 +270,13 @@ fun InventoryCard(delivery: Delivery) {
             SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(it)
         } ?: delivery.analysisDate ?: "Sin fecha"
 
+    // 🔥 AQUÍ EL CAMBIO IMPORTANTE:
+    // TOTAL = PESO BRUTO * PRECIO POR KG (ignoramos totalPayment guardado)
+    val totalCalculated =
+        (delivery.weightKgBruto ?: 0.0) * (delivery.pricePerKg ?: 0.0)
+
     val moneyFormat =
-        String.format(Locale("es", "CO"), "$%,.0f", delivery.totalPayment ?: 0.0)
+        String.format(Locale("es", "CO"), "$%,.0f", totalCalculated)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -278,6 +287,7 @@ fun InventoryCard(delivery: Delivery) {
 
         Column {
 
+            // HEADER
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -293,6 +303,7 @@ fun InventoryCard(delivery: Delivery) {
                 Text("COMPLETADO", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
             }
 
+            // CUERPO
             Column(Modifier.padding(16.dp)) {
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -307,7 +318,6 @@ fun InventoryCard(delivery: Delivery) {
 
                     Spacer(Modifier.weight(1f))
 
-                    // ------------ TARJETA PESO FIJO --------------
                     Card(
                         modifier = Modifier.width(90.dp),
                         shape = RoundedCornerShape(16.dp),
@@ -378,7 +388,12 @@ fun InventoryCard(delivery: Delivery) {
                 )
             }
 
-            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            // FOOTER
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
