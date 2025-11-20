@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.Timestamp
@@ -26,9 +27,6 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
-// ======================================
-//  INVENTORY SCREEN COMPLETO
-// ======================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InventoryScreen(navController: NavController) {
@@ -37,13 +35,13 @@ fun InventoryScreen(navController: NavController) {
 
     var allDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var filteredDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
+
     var producersMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var searchText by remember { mutableStateOf("") }
 
-    // ---------- CARGAR NOMBRES DE PRODUCTORES ----------
     fun loadProducersMap(onComplete: () -> Unit) {
         db.collection("producers").get()
             .addOnSuccessListener { snapshot ->
@@ -61,7 +59,6 @@ fun InventoryScreen(navController: NavController) {
             .addOnFailureListener { onComplete() }
     }
 
-    // ---------- CARGAR INVENTARIO (solo completados) ----------
     fun loadInventoryDeliveries() {
         isLoading = true
         errorMessage = null
@@ -82,6 +79,7 @@ fun InventoryScreen(navController: NavController) {
                                         SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES"))
                                             .format(date)
                                     }
+
                                     null -> null
                                     else -> v.toString()
                                 }
@@ -124,22 +122,19 @@ fun InventoryScreen(navController: NavController) {
                         allDeliveries = list
                         isLoading = false
                     } catch (e: Exception) {
-                        errorMessage = "Error al leer datos: ${e.localizedMessage}"
+                        errorMessage = "Error: ${e.localizedMessage}"
                         isLoading = false
                     }
                 }
                 .addOnFailureListener { e ->
-                    errorMessage = e.message ?: "Error al cargar inventario"
+                    errorMessage = e.message ?: "Error al cargar"
                     isLoading = false
                 }
         }
     }
 
-    LaunchedEffect(Unit) {
-        loadInventoryDeliveries()
-    }
+    LaunchedEffect(Unit) { loadInventoryDeliveries() }
 
-    // ---------- FILTRADO BUSCADOR ----------
     LaunchedEffect(searchText, allDeliveries, producersMap) {
         if (searchText.isBlank()) {
             filteredDeliveries = allDeliveries
@@ -147,10 +142,11 @@ fun InventoryScreen(navController: NavController) {
             val q = searchText.lowercase()
 
             filteredDeliveries = allDeliveries.filter { d ->
+
                 val matchLote = d.lotId.lowercase().contains(q)
 
-                val prod = producersMap[d.producerId]?.lowercase() ?: ""
-                val matchName = prod.contains(q)
+                val prodName = producersMap[d.producerId]?.lowercase() ?: ""
+                val matchName = prodName.contains(q)
 
                 val date = (d.deliveryDate as? Timestamp)?.toDate()
                 val dateStr = if (date != null)
@@ -165,41 +161,33 @@ fun InventoryScreen(navController: NavController) {
         }
     }
 
-    // ---------- UI ----------
     Scaffold(
         topBar = {
-            Column(
-                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
-            ) {
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+
                 TopAppBar(
                     title = { Text("Inventario (Análisis Completado)") },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            Icon(Icons.Default.ArrowBack, contentDescription = null)
                         }
                     },
                     actions = {
                         IconButton(onClick = { loadInventoryDeliveries() }) {
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "Recargar Inventario"
-                            )
+                            Icon(Icons.Default.Refresh, contentDescription = "Refrescar")
                         }
                     }
                 )
 
-                // ====== BARRA DE BÚSQUEDA ======
                 OutlinedTextField(
                     value = searchText,
                     onValueChange = { searchText = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp)
-                        .heightIn(min = 48.dp),
+                        .height(50.dp),
                     placeholder = { Text("Buscar productor, fecha o lote...") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null)
-                    },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     trailingIcon = if (searchText.isNotEmpty()) {
                         {
                             IconButton(onClick = { searchText = "" }) {
@@ -214,9 +202,7 @@ fun InventoryScreen(navController: NavController) {
                         unfocusedContainerColor = Color(0xFFF5F2FF),
                         disabledContainerColor = Color(0xFFF5F2FF),
                         focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        disabledBorderColor = Color.Transparent,
-                        cursorColor = MaterialTheme.colorScheme.primary
+                        unfocusedBorderColor = Color.Transparent
                     )
                 )
             }
@@ -224,14 +210,13 @@ fun InventoryScreen(navController: NavController) {
     ) { paddingValues ->
 
         Box(
-            modifier = Modifier
+            Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
         ) {
             when {
-                isLoading -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+
+                isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
 
                 errorMessage != null -> Text(
                     text = errorMessage!!,
@@ -239,16 +224,12 @@ fun InventoryScreen(navController: NavController) {
                     color = MaterialTheme.colorScheme.error
                 )
 
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(filteredDeliveries) { delivery ->
-                            InventoryCard(delivery)
-                        }
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredDeliveries) { delivery ->
+                        InventoryCard(delivery)
                     }
                 }
             }
@@ -256,15 +237,14 @@ fun InventoryScreen(navController: NavController) {
     }
 }
 
-// ========================================
-//  TARJETA DEL INVENTARIO (SOLO LECTURA)
-// ========================================
+// ====================================================================
+//  TARJETA COMPLETA Y CORREGIDA — TODOS LOS PESOS SE VEN IGUALES
+// ====================================================================
 @Composable
-fun InventoryCard(
-    delivery: Delivery
-) {
+fun InventoryCard(delivery: Delivery) {
+
     val db = FirebaseFirestore.getInstance()
-    var producerName by remember { mutableStateOf<String>("") }
+    var producerName by remember { mutableStateOf("") }
 
     LaunchedEffect(delivery.producerId) {
         try {
@@ -281,19 +261,13 @@ fun InventoryCard(
         }
     }
 
-    val dateString = remember(delivery.deliveryDate) {
-        val ts = delivery.deliveryDate as? Timestamp
-        if (ts != null)
-            SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(ts.toDate())
-        else
-            delivery.analysisDate ?: "Sin fecha"
-    }
+    val dateString =
+        (delivery.deliveryDate as? Timestamp)?.toDate()?.let {
+            SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(it)
+        } ?: delivery.analysisDate ?: "Sin fecha"
 
-    val moneyFormat = String.format(
-        Locale("es", "CO"),
-        "$%,.0f",
-        delivery.totalPayment ?: 0.0
-    )
+    val moneyFormat =
+        String.format(Locale("es", "CO"), "$%,.0f", delivery.totalPayment ?: 0.0)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -304,62 +278,65 @@ fun InventoryCard(
 
         Column {
 
-            // HEADER
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFE8F5E9))
                     .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.DateRange,
-                        contentDescription = null,
-                        tint = Color(0xFF2E7D32)
-                    )
+                    Icon(Icons.Outlined.DateRange, null, tint = Color(0xFF2E7D32))
                     Spacer(Modifier.width(6.dp))
-                    Text(
-                        dateString,
-                        color = Color(0xFF2E7D32),
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(dateString, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
                 }
-                Text(
-                    "COMPLETADO",
-                    color = Color(0xFF2E7D32),
-                    fontWeight = FontWeight.Bold
-                )
+                Text("COMPLETADO", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
             }
 
-            // CUERPO
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(Modifier.padding(16.dp)) {
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Person, null, tint = Color.Gray)
                     Spacer(Modifier.width(8.dp))
+
                     Column {
                         Text("Productor", color = Color.Gray)
                         Text(producerName, fontWeight = FontWeight.Bold)
-                        Text(
-                            "Lote: ${delivery.lotId}",
-                            color = Color.Gray
-                        )
+                        Text("Lote: ${delivery.lotId}", color = Color.Gray)
                     }
+
                     Spacer(Modifier.weight(1f))
 
+                    // ------------ TARJETA PESO FIJO --------------
                     Card(
+                        modifier = Modifier.width(90.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(8.dp),
+                            modifier = Modifier
+                                .padding(vertical = 8.dp, horizontal = 4.dp)
+                                .fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("Peso Bruto")
-                            Text("${delivery.weightKgBruto ?: 0} kg", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Peso Bruto",
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text(
+                                "${delivery.weightKgBruto ?: 0.0} kg",
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -374,17 +351,17 @@ fun InventoryCard(
                     OutlinedTextField(
                         value = "${delivery.moisturePercentage ?: "N/A"} %",
                         onValueChange = {},
-                        label = { Text("Humedad") },
                         readOnly = true,
                         enabled = false,
+                        label = { Text("Humedad") },
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = delivery.fermentationScore ?: "N/A",
                         onValueChange = {},
-                        label = { Text("Fermentación") },
                         readOnly = true,
                         enabled = false,
+                        label = { Text("Fermentación") },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -401,12 +378,7 @@ fun InventoryCard(
                 )
             }
 
-            // FOOTER
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
+            Column(Modifier.fillMaxWidth().padding(16.dp)) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -422,7 +394,11 @@ fun InventoryCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text("TOTAL PAGADO", fontWeight = FontWeight.Bold)
-                    Text(moneyFormat, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        moneyFormat,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
 
                 Spacer(Modifier.height(4.dp))
