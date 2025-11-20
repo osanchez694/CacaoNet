@@ -25,7 +25,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 // =======================
-//  MODELO DE DATOS
+//  MODELO DE DATOS (Sin cambios)
 // =======================
 data class Delivery(
     val id: String = "",
@@ -66,7 +66,7 @@ fun ReportsScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // ---------------------------------------------------------
-    // 1. FUNCIÓN PARA CARGAR PRODUCTORES (PARA PODER BUSCARLOS)
+    // 1. FUNCIÓN PARA CARGAR PRODUCTORES (Sin cambios)
     // ---------------------------------------------------------
     fun loadProducersMap(onComplete: () -> Unit) {
         db.collection("producers").get()
@@ -97,7 +97,7 @@ fun ReportsScreen(navController: NavController) {
     }
 
     // ---------------------------------------------------------
-    // 2. FUNCIÓN PARA CARGAR ENTREGAS
+    // 2. FUNCIÓN PARA CARGAR ENTREGAS (Sin cambios)
     // ---------------------------------------------------------
     fun loadDeliveries() {
         isLoading = true
@@ -134,7 +134,7 @@ fun ReportsScreen(navController: NavController) {
                             )
                         }
                         allDeliveries = list
-                        filteredDeliveries = list // Inicialmente mostramos todo
+                        // NOTA: No inicializamos filteredDeliveries aquí, se inicializa en el LaunchedEffect
                         isLoading = false
                     } catch (e: Exception) {
                         errorMessage = "Error leyendo datos: ${e.message}"
@@ -153,14 +153,25 @@ fun ReportsScreen(navController: NavController) {
     }
 
     // ---------------------------------------------------------
-    // 3. LÓGICA DE FILTRADO (BUSCADOR POTENTE)
+    // 3. LÓGICA DE FILTRADO (BUSCADOR POTENTE) - ✅ CORREGIDA
     // ---------------------------------------------------------
     LaunchedEffect(searchText, allDeliveries, producersMap) {
+
+        // --- 1. Filtro de Estado: Solo Lotes PENDIENTES DE ANÁLISIS ---
+        // Filtramos la lista completa para mostrar solo aquellos que aún no están completados
+        val pendingDeliveries = allDeliveries.filter { delivery ->
+            // Si el estado NO es "Análisis Completo", significa que está pendiente
+            delivery.status != "Análisis Completo"
+        }
+        // --------------------------------------------------------------
+
         if (searchText.isBlank()) {
-            filteredDeliveries = allDeliveries
+            // Mostrar solo los pendientes cuando no hay búsqueda
+            filteredDeliveries = pendingDeliveries
         } else {
             val query = searchText.lowercase()
-            filteredDeliveries = allDeliveries.filter { delivery ->
+            // Aplicar el filtro de búsqueda solo a los lotes pendientes
+            filteredDeliveries = pendingDeliveries.filter { delivery ->
 
                 // A) Buscar por LOTE
                 val matchLote = delivery.lotId.lowercase().contains(query)
@@ -264,6 +275,7 @@ fun ReportsScreen(navController: NavController) {
                                         else -> updated.pricePerKg ?: 0.0
                                     }
 
+                                    // Cálculo de peso neto basado en humedad
                                     val netWeight = updated.weightKgBruto?.let { bruto ->
                                         val hum = updated.moisturePercentage ?: 0.0
                                         bruto * (1 - hum / 100.0)
@@ -275,6 +287,7 @@ fun ReportsScreen(navController: NavController) {
                                         .document(updated.id)
                                         .update(
                                             mapOf(
+                                                // ✅ ACTUALIZACIÓN CLAVE: Cambia el status a "Análisis Completo"
                                                 "status" to "Análisis Completo",
                                                 "moisturePercentage" to updated.moisturePercentage,
                                                 "fermentationScore" to updated.fermentationScore,
@@ -296,7 +309,7 @@ fun ReportsScreen(navController: NavController) {
 }
 
 // ======================================
-//  TARJETA DE DISEÑO MEJORADO
+//  TARJETA DE DISEÑO MEJORADO (Sin cambios)
 // ======================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -330,7 +343,7 @@ fun DeliveryEditableCard(
     val qualityOptions = listOf("Exportación", "Nacional Estándar", "Rechazo")
     var expanded by remember { mutableStateOf(false) }
 
-    // Colores
+    // Colores y textos
     val isCompleted = delivery.status == "Análisis Completo"
     val headerColor = if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFFFF3E0) // Verde suave o Naranja suave
     val statusText = if (isCompleted) "COMPLETADO" else "PENDIENTE DE ANÁLISIS"
