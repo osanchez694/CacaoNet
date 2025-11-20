@@ -7,29 +7,66 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import me.oscarsanchez.cacaonet.ui.theme.CacaoNetTheme // Asegúrate que este import sea correcto según tu proyecto
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import me.oscarsanchez.cacaonet.ui.theme.CacaoNetTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             CacaoNetTheme {
-                // --- AQUÍ ESTÁ LA CLAVE ---
-                // Esto enciende el monitor de red para toda la aplicación
+                // 1. Monitor de Red
                 NetworkMonitorInit()
-                // --------------------------
 
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Aquí llamas a tu sistema de navegación o pantalla principal
-                    // Por ejemplo:
-                    // NavigationWrapper() o LoginScreen() o OperatorDashboardScreen(...)
+                    val navController = rememberNavController()
 
-                    // Si no tienes navegación centralizada aún y estás probando directo:
-                    val navController = androidx.navigation.compose.rememberNavController()
-                    OperatorDashboardScreen(navController = navController)
+                    // 2. Mapa de Navegación
+                    NavHost(
+                        navController = navController,
+                        startDestination = "operator_dashboard"
+                    ) {
+
+                        // --- DASHBOARD ---
+                        composable("operator_dashboard") {
+                            OperatorDashboardScreen(navController = navController)
+                        }
+
+                        // --- LOGIN ---
+                        composable(Screen.Login.route) {
+                            LoginScreen(
+                                onLogin = {
+                                    navController.navigate("operator_dashboard") {
+                                        popUpTo(Screen.Login.route) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
+                        // --- PANTALLAS DEL OPERADOR ---
+                        // Ahora pasamos (navController) a todas, porque tu PaymentsScreen lo pide.
+
+                        composable(Screen.Reports.route) {
+                            ReportsScreen(navController)
+                        }
+
+                        composable(Screen.Inventory.route) {
+                            InventoryScreen(navController)
+                        }
+
+                        composable(Screen.Payments.route) {
+                            PaymentsScreen(navController)
+                        }
+
+                        composable(Screen.Producers.route) {
+                            ProducersScreen(navController)
+                        }
+                    }
                 }
             }
         }
