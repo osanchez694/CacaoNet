@@ -28,6 +28,12 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 // ======================================
+// NOTA: Se ELIMINA la definición de 'data class Delivery'
+// para evitar el error de Redeclaración (Redeclaration error)
+// ======================================
+
+
+// ======================================
 //  INVENTARIO (Análisis Completado)
 // ======================================
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +42,9 @@ fun InventoryScreen(navController: NavController) {
 
     val db = FirebaseFirestore.getInstance()
 
+    // Si 'Delivery' no es reconocida aquí, es posible que necesites
+    // asegurarte de que está definida en un archivo separado
+    // o mover la definición de ReportsScreen.kt a un archivo de modelos de datos común.
     var allDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var filteredDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var producersMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -167,21 +176,31 @@ fun InventoryScreen(navController: NavController) {
     }
 
     Scaffold(
+        // Fondo de pantalla: #D7CCC8 (LatteBackground)
+        containerColor = Color(0xFFD7CCC8),
         topBar = {
-            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+            // Fondo de la columna de la barra superior: #3E2723 (DeepChocolate)
+            Column(modifier = Modifier.background(Color(0xFF3E2723))) {
 
-                TopAppBar(
-                    title = { Text("Inventario (Análisis Completado)") },
+                CenterAlignedTopAppBar(
+                    // CORREGIDO: Título en blanco
+                    title = { Text("Inventario (Análisis Completado)", color = Color.White) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = null)
+                            // CORREGIDO: Icono en blanco
+                            Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
                         }
                     },
                     actions = {
                         IconButton(onClick = { loadInventoryDeliveries() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refrescar")
+                            // CORREGIDO: Icono en blanco
+                            Icon(Icons.Default.Refresh, contentDescription = "Refrescar", tint = Color.White)
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        // Fondo del TopAppBar transparente para que la columna defina el color
+                        containerColor = Color.Transparent
+                    )
                 )
 
                 OutlinedTextField(
@@ -190,22 +209,23 @@ fun InventoryScreen(navController: NavController) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp)
-                        .height(50.dp),
-                    placeholder = { Text("Buscar productor, fecha o lote...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        .heightIn(min = 48.dp),
+                    placeholder = { Text("Buscar productor, fecha o lote...", color = Color.Gray) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                     trailingIcon = if (searchText.isNotEmpty()) {
                         {
                             IconButton(onClick = { searchText = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Limpiar")
+                                Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = Color.Gray)
                             }
                         }
                     } else null,
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color(0xFFF5F2FF),
-                        unfocusedContainerColor = Color(0xFFF5F2FF),
-                        disabledContainerColor = Color(0xFFF5F2FF),
+                        // Fondo del TextField en #FFF8E1 (CreamCard)
+                        focusedContainerColor = Color(0xFFFFF8E1),
+                        unfocusedContainerColor = Color(0xFFFFF8E1),
+                        disabledContainerColor = Color(0xFFFFF8E1),
                         focusedBorderColor = Color.Transparent,
                         unfocusedBorderColor = Color.Transparent
                     )
@@ -218,6 +238,7 @@ fun InventoryScreen(navController: NavController) {
             Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
+                .background(Color(0xFFD7CCC8)) // Fondo del Box: #D7CCC8
         ) {
             when {
                 isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -296,7 +317,8 @@ fun InventoryCard(delivery: Delivery) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(3.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        // Fondo de tarjeta: #FFF8E1 (CreamCard)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
         shape = RoundedCornerShape(12.dp)
     ) {
 
@@ -306,11 +328,13 @@ fun InventoryCard(delivery: Delivery) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    // Fondo del header: #E8F5E9 (Verde claro)
                     .background(Color(0xFFE8F5E9))
                     .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Icono y texto: #2E7D32 (Verde oscuro)
                     Icon(Icons.Outlined.DateRange, null, tint = Color(0xFF2E7D32))
                     Spacer(Modifier.width(6.dp))
                     Text(dateString, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
@@ -322,12 +346,14 @@ fun InventoryCard(delivery: Delivery) {
             Column(Modifier.padding(16.dp)) {
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Person, null, tint = Color.Gray)
+                    // Icono de persona: #3E2723 (DeepChocolate)
+                    Icon(Icons.Outlined.Person, null, tint = Color(0xFF3E2723))
                     Spacer(Modifier.width(8.dp))
 
                     Column {
                         Text("Productor", color = Color.Gray)
-                        Text(producerName, fontWeight = FontWeight.Bold)
+                        // Texto del productor: #3E2723
+                        Text(producerName, fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
                         Text("Lote: ${delivery.lotId}", color = Color.Gray)
                     }
 
@@ -337,7 +363,8 @@ fun InventoryCard(delivery: Delivery) {
                         modifier = Modifier.width(90.dp),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            // Fondo del Peso Bruto: #F0E5D3 (CardColorPressed)
+                            containerColor = Color(0xFFF0E5D3)
                         )
                     ) {
                         Column(
@@ -360,15 +387,18 @@ fun InventoryCard(delivery: Delivery) {
                                 textAlign = TextAlign.Center,
                                 maxLines = 1,
                                 softWrap = false,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                color = Color(0xFF3E2723) // Texto en marrón oscuro
                             )
                         }
                     }
                 }
 
-                Divider(Modifier.padding(vertical = 12.dp))
+                // Divisor: #5D4037 (Marrón más oscuro)
+                Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFF5D4037))
 
-                Text("Datos de Calidad (Análisis)", color = MaterialTheme.colorScheme.primary)
+                // Texto "Datos de Calidad (Análisis)": #3E2723
+                Text("Datos de Calidad (Análisis)", color = Color(0xFF3E2723))
 
                 Spacer(Modifier.height(8.dp))
 
@@ -441,7 +471,7 @@ fun InventoryCard(delivery: Delivery) {
                     Text(
                         moneyFormat,
                         fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = Color(0xFFE65100) // Naranja (#E65100) para TOTAL PAGADO
                     )
                 }
 
