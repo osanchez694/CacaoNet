@@ -27,11 +27,9 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
-// ======================================
-// NOTA: Se ELIMINA la definición de 'data class Delivery'
-// para evitar el error de Redeclaración (Redeclaration error)
-// ======================================
-
+// ❌ ATENCIÓN: LA CLASE DATA CLASS DELIVERY SE HA ELIMINADO DE AQUÍ
+// PARA RESOLVER EL ERROR DE REDECLARACIÓN. SE ASUME QUE ESTÁ EN OTRO ARCHIVO
+// Y DEBERÍA SER IMPORTADA AUTOMÁTICAMENTE POR EL IDE.
 
 // ======================================
 //  INVENTARIO (Análisis Completado)
@@ -42,9 +40,6 @@ fun InventoryScreen(navController: NavController) {
 
     val db = FirebaseFirestore.getInstance()
 
-    // Si 'Delivery' no es reconocida aquí, es posible que necesites
-    // asegurarte de que está definida en un archivo separado
-    // o mover la definición de ReportsScreen.kt a un archivo de modelos de datos común.
     var allDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var filteredDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var producersMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -89,8 +84,7 @@ fun InventoryScreen(navController: NavController) {
                                 return when (v) {
                                     is Timestamp -> {
                                         val date = v.toDate()
-                                        SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES"))
-                                            .format(date)
+                                        SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(date)
                                     }
 
                                     null -> null
@@ -130,7 +124,6 @@ fun InventoryScreen(navController: NavController) {
                                 pricePerKg = num("pricePerKg"),
                                 totalPayment = num("totalPayment"),
                                 paymentStatus = doc.getString("paymentStatus"),
-                                // 🔹 Leer peso neto desde Firestore
                                 weightKgNeto = num("weightKg_Neto"),
                             )
                         }
@@ -176,29 +169,23 @@ fun InventoryScreen(navController: NavController) {
     }
 
     Scaffold(
-        // Fondo de pantalla: #D7CCC8 (LatteBackground)
-        containerColor = Color(0xFFD7CCC8),
+        containerColor = Color(0xFFD7CCC8), // LatteBackground
         topBar = {
-            // Fondo de la columna de la barra superior: #3E2723 (DeepChocolate)
-            Column(modifier = Modifier.background(Color(0xFF3E2723))) {
+            Column(modifier = Modifier.background(Color(0xFF3E2723))) { // DeepChocolate
 
                 CenterAlignedTopAppBar(
-                    // CORREGIDO: Título en blanco
-                    title = { Text("Inventario (Análisis Completado)", color = Color.White) },
+                    title = { Text("Inventario", color = Color.White) },
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            // CORREGIDO: Icono en blanco
                             Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
                         }
                     },
                     actions = {
                         IconButton(onClick = { loadInventoryDeliveries() }) {
-                            // CORREGIDO: Icono en blanco
                             Icon(Icons.Default.Refresh, contentDescription = "Refrescar", tint = Color.White)
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        // Fondo del TopAppBar transparente para que la columna defina el color
                         containerColor = Color.Transparent
                     )
                 )
@@ -222,7 +209,6 @@ fun InventoryScreen(navController: NavController) {
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        // Fondo del TextField en #FFF8E1 (CreamCard)
                         focusedContainerColor = Color(0xFFFFF8E1),
                         unfocusedContainerColor = Color(0xFFFFF8E1),
                         disabledContainerColor = Color(0xFFFFF8E1),
@@ -238,7 +224,7 @@ fun InventoryScreen(navController: NavController) {
             Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .background(Color(0xFFD7CCC8)) // Fondo del Box: #D7CCC8
+                .background(Color(0xFFD7CCC8))
         ) {
             when {
                 isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -256,7 +242,7 @@ fun InventoryScreen(navController: NavController) {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredDeliveries) { delivery ->
-                        InventoryCard(delivery)
+                        InventoryCardMinimal(delivery, db)
                     }
                 }
             }
@@ -265,47 +251,29 @@ fun InventoryScreen(navController: NavController) {
 }
 
 // ====================================================================
-//  TARJETA INVENTARIO – MUESTRA PESO NETO
+//  TARJETA MINIMALISTA
 // ====================================================================
 @Composable
-fun InventoryCard(delivery: Delivery) {
+fun InventoryCardMinimal(delivery: Delivery, db: FirebaseFirestore) {
 
-    val db = FirebaseFirestore.getInstance()
+    // Lógica de carga de datos y cálculo del peso neto
     var producerName by remember { mutableStateOf("") }
-
     LaunchedEffect(delivery.producerId) {
         try {
-            val doc = db.collection("producers")
-                .document(delivery.producerId)
-                .get()
-                .await()
-
-            producerName = doc.getString("name")
-                ?: doc.getString("producerName")
-                        ?: delivery.producerId
+            val doc = db.collection("producers").document(delivery.producerId).get().await()
+            producerName = doc.getString("name") ?: doc.getString("producerName") ?: delivery.producerId
         } catch (e: Exception) {
             producerName = delivery.producerId
         }
     }
 
-    val dateString =
-        (delivery.deliveryDate as? Timestamp)?.toDate()?.let {
-            SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(it)
-        } ?: delivery.analysisDate ?: "Sin fecha"
+    val dateString = (delivery.deliveryDate as? Timestamp)?.toDate()?.let {
+        SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(it)
+    } ?: delivery.analysisDate ?: "Sin fecha"
 
-    // TOTAL PAGADO: igual que antes (usa totalPayment guardado)
-    val moneyFormat = String.format(
-        Locale("es", "CO"),
-        "$%,.0f",
-        delivery.totalPayment ?: 0.0
-    )
+    val moneyFormat = String.format(Locale("es", "CO"), "$%,.0f", delivery.totalPayment ?: 0.0)
 
-    // Peso Neto: si viene de Firestore se usa; si no, se calcula
-    val pesoNeto = remember(
-        delivery.weightKgNeto,
-        delivery.weightKgBruto,
-        delivery.moisturePercentage
-    ) {
+    val pesoNeto = remember(delivery.weightKgNeto, delivery.weightKgBruto, delivery.moisturePercentage) {
         delivery.weightKgNeto ?: run {
             val bruto = delivery.weightKgBruto ?: 0.0
             val hum = delivery.moisturePercentage ?: 0.0
@@ -314,172 +282,151 @@ fun InventoryCard(delivery: Delivery) {
     }
     val pesoNetoTexto = String.format(Locale("es", "CO"), "%.1f", pesoNeto)
 
+    // --- Diseño Minimalista ---
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(3.dp),
-        // Fondo de tarjeta: #FFF8E1 (CreamCard)
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)), // Fondo Crema
         shape = RoundedCornerShape(12.dp)
     ) {
 
-        Column {
+        Column(Modifier.padding(16.dp)) {
 
-            // HEADER
+            // 1. HEADER (Fecha y Estado - Simplificado)
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // Fondo del header: #E8F5E9 (Verde claro)
-                    .background(Color(0xFFE8F5E9))
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Fecha
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Icono y texto: #2E7D32 (Verde oscuro)
-                    Icon(Icons.Outlined.DateRange, null, tint = Color(0xFF2E7D32))
-                    Spacer(Modifier.width(6.dp))
-                    Text(dateString, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
-                }
-                Text("COMPLETADO", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
-            }
-
-            // CUERPO
-            Column(Modifier.padding(16.dp)) {
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Icono de persona: #3E2723 (DeepChocolate)
-                    Icon(Icons.Outlined.Person, null, tint = Color(0xFF3E2723))
-                    Spacer(Modifier.width(8.dp))
-
-                    Column {
-                        Text("Productor", color = Color.Gray)
-                        // Texto del productor: #3E2723
-                        Text(producerName, fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
-                        Text("Lote: ${delivery.lotId}", color = Color.Gray)
-                    }
-
-                    Spacer(Modifier.weight(1f))
-
-                    Card(
-                        modifier = Modifier.width(90.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            // Fondo del Peso Bruto: #F0E5D3 (CardColorPressed)
-                            containerColor = Color(0xFFF0E5D3)
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .padding(vertical = 8.dp, horizontal = 4.dp)
-                                .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                "Peso Bruto",
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                softWrap = false,
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Text(
-                                "${delivery.weightKgBruto ?: 0.0} kg",
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                softWrap = false,
-                                modifier = Modifier.fillMaxWidth(),
-                                color = Color(0xFF3E2723) // Texto en marrón oscuro
-                            )
-                        }
-                    }
-                }
-
-                // Divisor: #5D4037 (Marrón más oscuro)
-                Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFF5D4037))
-
-                // Texto "Datos de Calidad (Análisis)": #3E2723
-                Text("Datos de Calidad (Análisis)", color = Color(0xFF3E2723))
-
-                Spacer(Modifier.height(8.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = "${delivery.moisturePercentage ?: "N/A"} %",
-                        onValueChange = {},
-                        readOnly = true,
-                        enabled = false,
-                        label = { Text("Humedad") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = delivery.fermentationScore ?: "N/A",
-                        onValueChange = {},
-                        readOnly = true,
-                        enabled = false,
-                        label = { Text("Fermentación") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                // 🔹 Peso Neto debajo de los datos de análisis
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
+                    Icon(Icons.Outlined.DateRange, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "Peso Neto: $pesoNetoTexto kg",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
+                        dateString,
+                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.Gray
                     )
                 }
-
-                Spacer(Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = delivery.qualityGrade ?: "N/A",
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = false,
-                    label = { Text("Clasificación Final") },
-                    modifier = Modifier.fillMaxWidth()
+                // Estado (Verde Intenso para el POP minimalista)
+                Text(
+                    "COMPLETADO",
+                    color = Color(0xFF1B5E20), // Verde más oscuro
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
 
-            // FOOTER
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+            Spacer(Modifier.height(10.dp))
+
+            // 2. PRODUCTOR Y LOTE (Principal)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Precio por kg:", color = Color.Gray)
-                    Text("$${String.format("%,.0f", delivery.pricePerKg ?: 0.0)} /kg")
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("TOTAL PAGADO", fontWeight = FontWeight.Bold)
+                Column(Modifier.weight(1f)) {
                     Text(
-                        moneyFormat,
+                        producerName,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFFE65100) // Naranja (#E65100) para TOTAL PAGADO
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF3E2723) // Marrón oscuro
+                    )
+                    Text(
+                        "Lote: ${delivery.lotId}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
                     )
                 }
 
-                Spacer(Modifier.height(4.dp))
+                // 3. PESO BRUTO (Simplificado a un texto)
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Bruto:", color = Color.Gray, style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        "${delivery.weightKgBruto ?: 0.0} kg",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF3E2723)
+                    )
+                }
+            }
 
+            Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFF5D4037).copy(alpha = 0.2f))
+
+            // 4. DATOS DE CALIDAD (Minimalista - Sin OutlinedTextFields)
+            Column(Modifier.fillMaxWidth()) {
                 Text(
-                    "Estado de Pago: ${delivery.paymentStatus ?: "N/A"}",
-                    fontWeight = FontWeight.Medium
+                    "Análisis de Calidad",
+                    color = Color(0xFF3E2723),
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Humedad
+                    Column {
+                        Text("Humedad:", color = Color.Gray, style = MaterialTheme.typography.labelSmall)
+                        Text("${delivery.moisturePercentage ?: "N/A"} %", fontWeight = FontWeight.Medium)
+                    }
+                    // Fermentación
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Fermentación:", color = Color.Gray, style = MaterialTheme.typography.labelSmall)
+                        Text(delivery.fermentationScore ?: "N/A", fontWeight = FontWeight.Medium)
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                // Clasificación Final (Alineado a la izquierda para claridad)
+                Text("Clasificación Final:", color = Color.Gray, style = MaterialTheme.typography.labelSmall)
+                Text(delivery.qualityGrade ?: "N/A", fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // 5. FOOTER (Pago y Peso Neto)
+            // Peso Neto arriba del total para mejor flujo visual
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Peso Neto",
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Gray
+                )
+                Text(
+                    "$pesoNetoTexto kg",
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF3E2723)
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Divider(color = Color(0xFF5D4037).copy(alpha = 0.1f)) // Divisor más sutil
+            Spacer(Modifier.height(8.dp))
+
+            // Total Pagado y Estado
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("TOTAL A PAGAR", fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
+                    Text(
+                        "Estado: ${delivery.paymentStatus ?: "N/A"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+                Text(
+                    moneyFormat,
+                    fontWeight = FontWeight.ExtraBold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFFE65100) // Naranja para el total
                 )
             }
         }
