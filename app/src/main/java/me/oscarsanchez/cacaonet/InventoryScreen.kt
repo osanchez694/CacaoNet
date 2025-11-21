@@ -11,7 +11,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.DateRange
-// ... (Otros imports)
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,18 +42,28 @@ fun InventoryScreen(navController: NavController) {
     var filteredDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var producersMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
-    // 🎯 NUEVA VARIABLE DE ESTADO PARA EL TOTAL
     var totalLoteValue by remember { mutableStateOf(0.0) }
+    // 🎯 NUEVA VARIABLE PARA EL PESO NETO TOTAL
+    var totalNetWeight by remember { mutableStateOf(0.0) }
 
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var searchText by remember { mutableStateOf("") }
 
+    // Función para calcular el peso neto de una entrega (duplicada para la lógica, pero necesaria)
+    fun calculateNetWeight(delivery: Delivery): Double {
+        return delivery.weightKgNeto ?: run {
+            val bruto = delivery.weightKgBruto ?: 0.0
+            val hum = delivery.moisturePercentage ?: 0.0
+            bruto * (1 - hum / 100.0)
+        }
+    }
+
     // ---------- Cargar nombres de productores ----------
     fun loadProducersMap(onComplete: () -> Unit) {
+        // ... (Lógica de carga de productores omitida, es la misma)
         db.collection("producers").get()
             .addOnSuccessListener { snapshot ->
-                // ... (Lógica de carga de productores omitida)
                 val temp = mutableMapOf<String, String>()
                 snapshot.documents.forEach { doc ->
                     val name = doc.getString("producerName")
@@ -130,6 +140,8 @@ fun InventoryScreen(navController: NavController) {
 
                         // 🎯 CÁLCULO DEL TOTAL AL CARGAR LOS DATOS
                         totalLoteValue = list.sumOf { it.totalPayment ?: 0.0 }
+                        // 🎯 CÁLCULO DEL PESO NETO TOTAL AL CARGAR LOS DATOS
+                        totalNetWeight = list.sumOf { calculateNetWeight(it) }
 
                         isLoading = false
                     } catch (e: Exception) {
@@ -177,12 +189,13 @@ fun InventoryScreen(navController: NavController) {
         }
         // 🎯 CÁLCULO DEL TOTAL CON BASE EN LOS LOTES FILTRADOS
         totalLoteValue = filteredDeliveries.sumOf { it.totalPayment ?: 0.0 }
+        totalNetWeight = filteredDeliveries.sumOf { calculateNetWeight(it) }
     }
 
+    // ... (El resto del Scaffold y la TopBar son iguales)
     Scaffold(
         containerColor = Color(0xFFD7CCC8), // LatteBackground
         topBar = {
-            // ... (TopBar con Título y Buscador omitido)
             Column(modifier = Modifier.background(Color(0xFF3E2723))) { // DeepChocolate
 
                 CenterAlignedTopAppBar(
@@ -250,13 +263,13 @@ fun InventoryScreen(navController: NavController) {
                 else -> LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp), // Ajustamos padding para la nueva tarjeta
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 🎯 NUEVO COMPONENTE DE TARJETA TOTAL
                     item {
-                        TotalValueCard(totalLoteValue)
-                        Spacer(Modifier.height(8.dp)) // Espacio extra después del total
+                        // 🎯 PASANDO EL PESO TOTAL NETO
+                        TotalValueCard(totalLoteValue, totalNetWeight)
+                        Spacer(Modifier.height(8.dp))
                     }
 
                     items(filteredDeliveries) { delivery ->
@@ -267,45 +280,74 @@ fun InventoryScreen(navController: NavController) {
         }
     }
 }
+// --------------------------------------------------------------------
+// --------------------------------------------------------------------
+
+
 
 // ====================================================================
-//  NUEVA TARJETA DE VALOR TOTAL DEL INVENTARIO
+//  TARJETA DE VALOR TOTAL DEL INVENTARIO (ACTUALIZADA)
 // ====================================================================
 @Composable
-fun TotalValueCard(totalValue: Double) {
+fun TotalValueCard(totalValue: Double, totalWeight: Double) { // 🎯 NUEVO PARÁMETRO
     val moneyFormat = String.format(Locale("es", "CO"), "$%,.0f", totalValue)
+    val weightFormat = String.format(Locale("es", "CO"), "%,.1f kg", totalWeight) // Formato para el peso
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 90.dp), // Altura mínima para que se vea como un botón grande
+            .heightIn(min = 90.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF5D4037)), // MilkChocolate
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween // Alineación horizontal para dos columnas
         ) {
-            Text(
-                text = "VALOR TOTAL DEL INVENTARIO",
-                color = Color(0xFFD7CCC8), // LatteBackground (Claro)
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = moneyFormat,
-                color = Color(0xFFFFCC80), // Naranja Claro / Ámbar para resaltar
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold
-            )
+            // Columna 1: Valor Monetario
+            Column(horizontalAlignment = Alignment.Start) {
+                Text(
+                    text = "VALOR MONETARIO TOTAL", // Etiqueta más clara
+                    color = Color(0xFFD7CCC8),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = moneyFormat,
+                    color = Color(0xFFFFCC80),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
+
+            // Columna 2: Peso Neto Total
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "PESO NETO TOTAL",
+                    color = Color(0xFFD7CCC8).copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = weightFormat, // Muestra el peso total en kg
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            }
         }
     }
 }
+// --------------------------------------------------------------------
+// --------------------------------------------------------------------
+
+
 
 // ====================================================================
 //  TARJETA MINIMALISTA (SIN CAMBIOS EN LÓGICA INTERNA)
