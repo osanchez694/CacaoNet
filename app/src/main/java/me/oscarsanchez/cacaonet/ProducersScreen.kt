@@ -1,5 +1,8 @@
 package me.oscarsanchez.cacaonet
 
+import androidx.compose.foundation.clickable // <-- IMPORTANTE: Importar el modificador clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +26,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 // ----------------------------------------------------------------------
 val SoftCream = Color(0xFFFFF8E1) // Color crema suave para el fondo
 val DarkBrown = Color(0xFF411B1B) // Color marrón oscuro para la barra superior
+val PressedCardColor = Color(0xFFE0E0E0) // Nuevo color para el estado presionado
 
 // ----------------------------------------------------------------------
 // 2. Modelo de datos
@@ -46,6 +50,9 @@ fun ProducersScreen(navController: NavController) {
     var producers by remember { mutableStateOf<List<Producer>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+
+    // NUEVO ESTADO: Para controlar el diálogo y qué productor se selecciona
+    var selectedProducer by remember { mutableStateOf<Producer?>(null) }
 
     // 🔄 Lógica de carga de datos
     LaunchedEffect(Unit) {
@@ -155,25 +162,87 @@ fun ProducersScreen(navController: NavController) {
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
                     ) {
                         items(filteredProducers) { producer ->
-                            ProducerCard(producer = producer)
+                            // MODIFICADO: Añadido el lambda para manejar el clic
+                            ProducerCard(producer = producer, onClick = {
+                                selectedProducer = producer // Guarda el productor para mostrar el diálogo
+                            })
                         }
                     }
                 }
             }
         }
     }
+
+    // NUEVO: Mostrar el diálogo si hay un productor seleccionado
+    selectedProducer?.let { producer ->
+        ProducerDetailDialog(
+            producer = producer,
+            onDismiss = { selectedProducer = null } // Cierra el diálogo y resetea el estado
+        )
+    }
 }
 
 // ----------------------------------------------------------------------
-// Componente de Tarjeta de Productor (sin cambios en esta versión)
+// 3. Componente de Diálogo con el Detalle del Productor (NUEVO)
 // ----------------------------------------------------------------------
 @Composable
-fun ProducerCard(producer: Producer) {
+fun ProducerDetailDialog(producer: Producer, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(producer.producerName, fontWeight = FontWeight.Bold, color = DarkBrown)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Tipo: ${producer.type}")
+                Divider()
+                Text("Finca: ${producer.fincaName}")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Phone, contentDescription = "Teléfono", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(producer.phone, fontWeight = FontWeight.SemiBold)
+                }
+                producer.hectares?.let {
+                    Text("🌾 Hectáreas: $it")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar")
+            }
+        },
+        containerColor = SoftCream // Usando tu color crema suave para el fondo del diálogo
+    )
+}
+
+// ----------------------------------------------------------------------
+// 4. Componente de Tarjeta de Productor (MODIFICADO)
+// ----------------------------------------------------------------------
+@Composable
+fun ProducerCard(producer: Producer, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    // Lógica para cambiar el color cuando se presiona (para un efecto visual rápido)
+    val cardColor = if (isPressed) {
+        PressedCardColor // Color gris más oscuro para el estado de "presionado"
+    } else {
+        Color(0xFFEFEFEF) // Gris muy claro por defecto
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            // MODIFICADO: Añadido el comportamiento de clic y la fuente de interacción
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null, // Deshabilita la ondulación por defecto (ripple) para usar el cambio de color de la tarjeta
+                onClick = onClick
+            ),
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFEFEFEF) // Gris muy claro para la tarjeta
+            containerColor = cardColor // Usa el color dinámico
         )
     ) {
         Column(
