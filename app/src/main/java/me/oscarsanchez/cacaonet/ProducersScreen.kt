@@ -1,6 +1,6 @@
 package me.oscarsanchez.cacaonet
 
-import androidx.compose.foundation.clickable // <-- IMPORTANTE: Importar el modificador clickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Refresh // <-- NUEVO: Importar el icono de Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,11 +23,16 @@ import androidx.navigation.NavController
 import com.google.firebase.firestore.FirebaseFirestore
 
 // ----------------------------------------------------------------------
-// 1. Definición de Colores Personalizados
+// 1. Definición de Colores Personalizados (ACTUALIZADO: Colores para el badge)
 // ----------------------------------------------------------------------
 val SoftCream = Color(0xFFFFF8E1) // Color crema suave para el fondo
 val DarkBrown = Color(0xFF411B1B) // Color marrón oscuro para la barra superior
 val PressedCardColor = Color(0xFFE0E0E0) // Nuevo color para el estado presionado
+
+// Colores para el Badge (AJUSTADOS para que coincidan con la imagen que enviaste)
+val BadgeBackgroundColor = Color(0xFFE5F1E1) // Verde muy claro, similar al de tu imagen
+val BadgeContentColor = Color(0xFF5A8E54)    // Verde oscuro para el texto del badge
+
 
 // ----------------------------------------------------------------------
 // 2. Modelo de datos
@@ -51,11 +57,12 @@ fun ProducersScreen(navController: NavController) {
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // NUEVO ESTADO: Para controlar el diálogo y qué productor se selecciona
     var selectedProducer by remember { mutableStateOf<Producer?>(null) }
 
-    // 🔄 Lógica de carga de datos
-    LaunchedEffect(Unit) {
+    // Función para cargar los productores (NUEVA: para reutilizarla)
+    val loadProducers: () -> Unit = {
+        loading = true
+        error = null
         db.collection("producers")
             .get()
             .addOnSuccessListener { result ->
@@ -76,6 +83,11 @@ fun ProducersScreen(navController: NavController) {
                 error = e.message
                 loading = false
             }
+    }
+
+    // 🔄 Lógica de carga de datos inicial
+    LaunchedEffect(Unit) {
+        loadProducers()
     }
 
     // Lógica de Filtrado (por Nombre o Teléfono)
@@ -107,7 +119,16 @@ fun ProducersScreen(navController: NavController) {
                         )
                     }
                 },
-                // ESTILO DEL ENCABEZADO
+                // NUEVO: Añadido el botón de refresh
+                actions = {
+                    IconButton(onClick = { loadProducers() }) { // Llama a la función de carga al presionar
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refrescar lista",
+                            tint = Color.White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = DarkBrown
                 )
@@ -120,7 +141,6 @@ fun ProducersScreen(navController: NavController) {
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            // Barra de Búsqueda
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
@@ -162,9 +182,8 @@ fun ProducersScreen(navController: NavController) {
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp)
                     ) {
                         items(filteredProducers) { producer ->
-                            // MODIFICADO: Añadido el lambda para manejar el clic
                             ProducerCard(producer = producer, onClick = {
-                                selectedProducer = producer // Guarda el productor para mostrar el diálogo
+                                selectedProducer = producer
                             })
                         }
                     }
@@ -173,17 +192,16 @@ fun ProducersScreen(navController: NavController) {
         }
     }
 
-    // NUEVO: Mostrar el diálogo si hay un productor seleccionado
     selectedProducer?.let { producer ->
         ProducerDetailDialog(
             producer = producer,
-            onDismiss = { selectedProducer = null } // Cierra el diálogo y resetea el estado
+            onDismiss = { selectedProducer = null }
         )
     }
 }
 
 // ----------------------------------------------------------------------
-// 3. Componente de Diálogo con el Detalle del Productor (NUEVO)
+// 3. Componente de Diálogo con el Detalle del Productor
 // ----------------------------------------------------------------------
 @Composable
 fun ProducerDetailDialog(producer: Producer, onDismiss: () -> Unit) {
@@ -212,21 +230,20 @@ fun ProducerDetailDialog(producer: Producer, onDismiss: () -> Unit) {
                 Text("Cerrar")
             }
         },
-        containerColor = SoftCream // Usando tu color crema suave para el fondo del diálogo
+        containerColor = SoftCream
     )
 }
 
 // ----------------------------------------------------------------------
-// 4. Componente de Tarjeta de Productor (MODIFICADO)
+// 4. Componente de Tarjeta de Productor (Badge con colores ajustados)
 // ----------------------------------------------------------------------
 @Composable
 fun ProducerCard(producer: Producer, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Lógica para cambiar el color cuando se presiona (para un efecto visual rápido)
     val cardColor = if (isPressed) {
-        PressedCardColor // Color gris más oscuro para el estado de "presionado"
+        PressedCardColor
     } else {
         Color(0xFFEFEFEF) // Gris muy claro por defecto
     }
@@ -234,15 +251,14 @@ fun ProducerCard(producer: Producer, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            // MODIFICADO: Añadido el comportamiento de clic y la fuente de interacción
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // Deshabilita la ondulación por defecto (ripple) para usar el cambio de color de la tarjeta
+                indication = null,
                 onClick = onClick
             ),
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = cardColor // Usa el color dinámico
+            containerColor = cardColor
         )
     ) {
         Column(
@@ -265,15 +281,15 @@ fun ProducerCard(producer: Producer, onClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Badge de Tipo
+                // Badge de Tipo (ACTUALIZADO: Usando los nuevos colores definidos)
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
+                    color = BadgeBackgroundColor // <-- Color de fondo ajustado
                 ) {
                     Text(
                         text = producer.type,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        color = BadgeContentColor, // <-- Color de texto ajustado
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
