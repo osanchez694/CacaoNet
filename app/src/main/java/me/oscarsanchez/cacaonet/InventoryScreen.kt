@@ -415,7 +415,7 @@ fun InventoryCardMinimal(delivery: Delivery, db: FirebaseFirestore) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("TOTAL A PAGAR", fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
+                    Text("PRECIO DEL LOTE", fontWeight = FontWeight.Bold, color = Color(0xFF3E2723))
                     Text(
                         "Estado: ${delivery.paymentStatus ?: "N/A"}",
                         style = MaterialTheme.typography.bodySmall,
