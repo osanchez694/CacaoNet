@@ -23,18 +23,12 @@ import androidx.navigation.NavController
 import com.google.firebase.firestore.FirebaseFirestore
 
 // ----------------------------------------------------------------------
-// 1. Definición de Colores Personalizados (ACTUALIZADO: Colores de la Tarjeta)
+// 1. Definición de Colores Personalizados (Solo se dejan los del Badge, el resto se incrustan)
 // ----------------------------------------------------------------------
-val SoftCream = Color(0xFFFFF8E1) // Color crema suave para el fondo
-val DarkBrown = Color(0xFF411B1B) // Color marrón oscuro para la barra superior
-
-// Colores de la tarjeta (NUEVO COLOR: Amarillo/Beige muy suave)
-val CardColorNormal = Color(0xFFFFFACD) // Amarillo pálido para forzar el cambio
-val CardColorPressed = Color(0xFFFAEBD7) // Gris/Beige claro para el estado presionado
 
 // Colores para el Badge
-val BadgeBackgroundColor = Color(0xFFE5F1E1) // Verde muy claro
-val BadgeContentColor = Color(0xFF5A8E54)    // Verde oscuro para el texto del badge
+val BadgeBackgroundColor = Color(0xFFE5F1E1)
+val BadgeContentColor = Color(0xFF5A8E54)
 
 
 // ----------------------------------------------------------------------
@@ -104,7 +98,8 @@ fun ProducersScreen(navController: NavController) {
     }
 
     Scaffold(
-        containerColor = SoftCream,
+        // Fondo de pantalla: LatteBackground (0xFFD7CCC8)
+        containerColor = Color(0xFFD7CCC8),
         topBar = {
             TopAppBar(
                 title = {
@@ -129,7 +124,8 @@ fun ProducersScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkBrown
+                    // Color de la barra superior: DeepChocolate (0xFF3E2723)
+                    containerColor = Color(0xFF3E2723)
                 )
             )
         }
@@ -207,7 +203,12 @@ fun ProducerDetailDialog(producer: Producer, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(producer.producerName, fontWeight = FontWeight.Bold, color = DarkBrown)
+            Text(
+                producer.producerName,
+                fontWeight = FontWeight.Bold,
+                // Color del título: DeepChocolate (0xFF3E2723)
+                color = Color(0xFF3E2723)
+            )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -229,23 +230,28 @@ fun ProducerDetailDialog(producer: Producer, onDismiss: () -> Unit) {
                 Text("Cerrar")
             }
         },
-        containerColor = SoftCream
+        // Fondo del diálogo: CreamCard (0xFFFFF8E1)
+        containerColor = Color(0xFFFFF8E1)
     )
 }
 
 // ----------------------------------------------------------------------
-// 4. Componente de Tarjeta de Productor (ACTUALIZADO: Colores de la tarjeta)
+// 4. Componente de Tarjeta de Productor
 // ----------------------------------------------------------------------
 @Composable
 fun ProducerCard(producer: Producer, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Los colores de la tarjeta ahora usan CardColorNormal y CardColorPressed
+    // Color de la tarjeta normal: CreamCard (0xFFFFF8E1)
+    val CardColorNormal = Color(0xFFFFF8E1)
+    // Color de la tarjeta presionada: CardColorPressed (0xFFF0E5D3)
+    val CardColorPressed = Color(0xFFF0E5D3)
+
     val cardColor = if (isPressed) {
-        CardColorPressed // Gris/Beige claro para el estado presionado
+        CardColorPressed
     } else {
-        CardColorNormal // Amarillo pálido por defecto
+        CardColorNormal
     }
 
     Card(
@@ -258,7 +264,7 @@ fun ProducerCard(producer: Producer, onClick: () -> Unit) {
             ),
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = cardColor // Usa el color dinámico de la tarjeta
+            containerColor = cardColor
         )
     ) {
         Column(
@@ -275,15 +281,16 @@ fun ProducerCard(producer: Producer, onClick: () -> Unit) {
                     text = producer.producerName,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
+                    // Color del título: DeepChocolate (0xFF3E2723)
+                    color = Color(0xFF3E2723),
+                    modifier = Modifier.weight(weight = 1f)
                 )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Badge de Tipo
                 Surface(
-                    shape = RoundedCornerShape(4.dp),
+                    shape = RoundedCornerShape(size = 4.dp),
                     color = BadgeBackgroundColor
                 ) {
                     Text(
@@ -315,8 +322,9 @@ fun ProducerCard(producer: Producer, onClick: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.Phone,
                         contentDescription = "Teléfono",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        modifier = Modifier.size(size = 16.dp),
+                        // Color del icono: DeepChocolate (0xFF3E2723)
+                        tint = Color(0xFF3E2723)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
