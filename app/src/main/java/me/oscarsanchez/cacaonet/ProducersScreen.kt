@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Refresh // <-- NUEVO: Importar el icono de Refresh
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,14 +23,17 @@ import androidx.navigation.NavController
 import com.google.firebase.firestore.FirebaseFirestore
 
 // ----------------------------------------------------------------------
-// 1. Definición de Colores Personalizados (ACTUALIZADO: Colores para el badge)
+// 1. Definición de Colores Personalizados (ACTUALIZADO: Colores de la Tarjeta)
 // ----------------------------------------------------------------------
 val SoftCream = Color(0xFFFFF8E1) // Color crema suave para el fondo
 val DarkBrown = Color(0xFF411B1B) // Color marrón oscuro para la barra superior
-val PressedCardColor = Color(0xFFE0E0E0) // Nuevo color para el estado presionado
 
-// Colores para el Badge (AJUSTADOS para que coincidan con la imagen que enviaste)
-val BadgeBackgroundColor = Color(0xFFE5F1E1) // Verde muy claro, similar al de tu imagen
+// Colores de la tarjeta (NUEVO COLOR: Amarillo/Beige muy suave)
+val CardColorNormal = Color(0xFFFFFACD) // Amarillo pálido para forzar el cambio
+val CardColorPressed = Color(0xFFFAEBD7) // Gris/Beige claro para el estado presionado
+
+// Colores para el Badge
+val BadgeBackgroundColor = Color(0xFFE5F1E1) // Verde muy claro
 val BadgeContentColor = Color(0xFF5A8E54)    // Verde oscuro para el texto del badge
 
 
@@ -59,7 +62,6 @@ fun ProducersScreen(navController: NavController) {
 
     var selectedProducer by remember { mutableStateOf<Producer?>(null) }
 
-    // Función para cargar los productores (NUEVA: para reutilizarla)
     val loadProducers: () -> Unit = {
         loading = true
         error = null
@@ -85,12 +87,10 @@ fun ProducersScreen(navController: NavController) {
             }
     }
 
-    // 🔄 Lógica de carga de datos inicial
     LaunchedEffect(Unit) {
         loadProducers()
     }
 
-    // Lógica de Filtrado (por Nombre o Teléfono)
     val filteredProducers = remember(producers, searchText) {
         if (searchText.isBlank()) {
             producers
@@ -119,9 +119,8 @@ fun ProducersScreen(navController: NavController) {
                         )
                     }
                 },
-                // NUEVO: Añadido el botón de refresh
                 actions = {
-                    IconButton(onClick = { loadProducers() }) { // Llama a la función de carga al presionar
+                    IconButton(onClick = { loadProducers() }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Refrescar lista",
@@ -235,17 +234,18 @@ fun ProducerDetailDialog(producer: Producer, onDismiss: () -> Unit) {
 }
 
 // ----------------------------------------------------------------------
-// 4. Componente de Tarjeta de Productor (Badge con colores ajustados)
+// 4. Componente de Tarjeta de Productor (ACTUALIZADO: Colores de la tarjeta)
 // ----------------------------------------------------------------------
 @Composable
 fun ProducerCard(producer: Producer, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
+    // Los colores de la tarjeta ahora usan CardColorNormal y CardColorPressed
     val cardColor = if (isPressed) {
-        PressedCardColor
+        CardColorPressed // Gris/Beige claro para el estado presionado
     } else {
-        Color(0xFFEFEFEF) // Gris muy claro por defecto
+        CardColorNormal // Amarillo pálido por defecto
     }
 
     Card(
@@ -258,7 +258,7 @@ fun ProducerCard(producer: Producer, onClick: () -> Unit) {
             ),
         elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = cardColor
+            containerColor = cardColor // Usa el color dinámico de la tarjeta
         )
     ) {
         Column(
@@ -281,15 +281,15 @@ fun ProducerCard(producer: Producer, onClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Badge de Tipo (ACTUALIZADO: Usando los nuevos colores definidos)
+                // Badge de Tipo
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = BadgeBackgroundColor // <-- Color de fondo ajustado
+                    color = BadgeBackgroundColor
                 ) {
                     Text(
                         text = producer.type,
                         style = MaterialTheme.typography.labelSmall,
-                        color = BadgeContentColor, // <-- Color de texto ajustado
+                        color = BadgeContentColor,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
