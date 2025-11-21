@@ -143,7 +143,7 @@ fun InventoryScreen(navController: NavController) {
 
     LaunchedEffect(Unit) { loadInventoryDeliveries() }
 
-    // ---------- Filtro por buscador ----------
+    // ---------- Filtro por buscador (LÓGICA ACTUALIZADA) ----------
     LaunchedEffect(searchText, allDeliveries, producersMap) {
         if (searchText.isBlank()) {
             filteredDeliveries = allDeliveries
@@ -155,15 +155,23 @@ fun InventoryScreen(navController: NavController) {
                 val prodName = producersMap[d.producerId]?.lowercase() ?: ""
                 val matchName = prodName.contains(q)
 
+                // --- Filtro por Fecha (Análisis o Entrega) ---
                 val date = (d.deliveryDate as? Timestamp)?.toDate()
                 val dateStr = if (date != null)
                     SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(date)
                 else
                     d.analysisDate?.lowercase() ?: ""
-
                 val matchDate = dateStr.contains(q)
 
-                matchLote || matchName || matchDate
+                // --- Filtro por Calificación (Exportación/Nacional) ---
+                val grade = d.qualityGrade?.lowercase() ?: ""
+                val matchGrade = grade.contains(q)
+
+                // Si el usuario escribe 'exportacion' o 'nacional', también debe coincidir.
+                val matchExportacion = q.contains("exportacion") && grade.contains("exportacion")
+                val matchNacional = q.contains("nacional") && grade.contains("nacional")
+
+                matchLote || matchName || matchDate || matchGrade || matchExportacion || matchNacional
             }
         }
     }
@@ -197,7 +205,8 @@ fun InventoryScreen(navController: NavController) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                         .heightIn(min = 48.dp),
-                    placeholder = { Text("Buscar productor, fecha o lote...", color = Color.Gray) },
+                    // 🎯 PLACEHOLDER ACTUALIZADO
+                    placeholder = { Text("Buscar: Productor, Lote o Fecha, etc...", color = Color.Gray) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                     trailingIcon = if (searchText.isNotEmpty()) {
                         {
@@ -251,7 +260,7 @@ fun InventoryScreen(navController: NavController) {
 }
 
 // ====================================================================
-//  TARJETA MINIMALISTA
+//  TARJETA MINIMALISTA (SIN CAMBIOS)
 // ====================================================================
 @Composable
 fun InventoryCardMinimal(delivery: Delivery, db: FirebaseFirestore) {
@@ -408,7 +417,7 @@ fun InventoryCardMinimal(delivery: Delivery, db: FirebaseFirestore) {
             Divider(color = Color(0xFF5D4037).copy(alpha = 0.1f)) // Divisor más sutil
             Spacer(Modifier.height(8.dp))
 
-            // Total Pagado y Estado
+            // Precio del Lote y Estado
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
