@@ -47,6 +47,16 @@ data class Delivery(
 )
 
 // =======================
+//  COLORES (HEXADECIMALES DIRECTOS)
+// =======================
+// Se definen para referencia, pero se usarán directamente en el código de Compose.
+// DeepChocolate = 0xFF3E2723
+// LatteBackground = 0xFFD7CCC8
+// CreamCard = 0xFFFFF8E1
+// CardColorPressed = 0xFFF0E5D3
+// OrangeAccent (Mantenido) = 0xFFE65100
+
+// =======================
 //  PANTALLA PRINCIPAL
 // =======================
 @OptIn(ExperimentalMaterial3Api::class)
@@ -172,20 +182,25 @@ fun ReportsScreen(navController: NavController) {
     }
 
     Scaffold(
+        // Fondo de pantalla: LatteBackground (0xFFD7CCC8)
+        containerColor = Color(0xFFD7CCC8),
         topBar = {
-            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface)) {
+            Column(modifier = Modifier.background(Color(0xFFFFF8E1))) { // Fondo del TopBar: CreamCard (0xFFFFF8E1)
                 CenterAlignedTopAppBar(
-                    title = { Text("Reportes y Análisis", fontWeight = FontWeight.Bold) },
+                    title = { Text("Reportes y Análisis", fontWeight = FontWeight.Bold, color = Color(0xFF3E2723)) }, // Título: DeepChocolate (0xFF3E2723)
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color(0xFF3E2723)) // Icono: DeepChocolate (0xFF3E2723)
                         }
                     },
                     actions = {
                         IconButton(onClick = { loadDeliveries() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Recargar")
+                            Icon(Icons.Default.Refresh, contentDescription = "Recargar", tint = Color(0xFF3E2723)) // Icono: DeepChocolate (0xFF3E2723)
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
 
                 OutlinedTextField(
@@ -210,6 +225,7 @@ fun ReportsScreen(navController: NavController) {
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
+                        // Se mantiene el color existente para el TextField (0xFFF5F2FF)
                         focusedContainerColor = Color(0xFFF5F2FF),
                         unfocusedContainerColor = Color(0xFFF5F2FF),
                         disabledContainerColor = Color(0xFFF5F2FF),
@@ -224,7 +240,8 @@ fun ReportsScreen(navController: NavController) {
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                // Fondo de pantalla: LatteBackground (0xFFD7CCC8)
+                .background(Color(0xFFD7CCC8))
         ) {
             when {
                 isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -309,9 +326,11 @@ fun ReportsScreen(navController: NavController) {
     }
 }
 
+// ----------------------------------------------------------------------
 // ======================================
 //  TARJETA EDITABLE (CON PESO NETO)
 // ======================================
+// ----------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeliveryEditableCard(
@@ -362,14 +381,17 @@ fun DeliveryEditableCard(
     var expanded by remember { mutableStateOf(false) }
 
     val isCompleted = delivery.status == "Análisis Completo"
-    val headerColor = if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFFFF3E0)
+
+    // Colores de estado (Mantenidos):
+    val headerColor = if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFFFF3E0) // Verde claro / Naranja claro
     val statusText = if (isCompleted) "COMPLETADO" else "PENDIENTE DE ANÁLISIS"
-    val statusTextColor = if (isCompleted) Color(0xFF2E7D32) else Color(0xFFE65100)
+    val statusTextColor = if (isCompleted) Color(0xFF2E7D32) else Color(0xFFE65100) // Verde oscuro / Naranja oscuro
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(3.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        // Fondo de tarjeta: CreamCard (0xFFFFF8E1)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -408,7 +430,8 @@ fun DeliveryEditableCard(
             Column(modifier = Modifier.padding(16.dp)) {
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Person, null, tint = Color.Gray)
+                    // Icono de persona: DeepChocolate (0xFF3E2723)
+                    Icon(Icons.Outlined.Person, null, tint = Color(0xFF3E2723))
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
@@ -420,7 +443,9 @@ fun DeliveryEditableCard(
                             producerNameResolved,
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
-                            )
+                            ),
+                            // Nombre del productor: DeepChocolate (0xFF3E2723)
+                            color = Color(0xFF3E2723)
                         )
                         Text(
                             "Lote: ${delivery.lotId}",
@@ -432,7 +457,8 @@ fun DeliveryEditableCard(
 
                     Card(
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            // Fondo Peso Bruto: CardColorPressed (0xFFF0E5D3)
+                            containerColor = Color(0xFFF0E5D3)
                         )
                     ) {
                         Column(
@@ -442,18 +468,22 @@ fun DeliveryEditableCard(
                             Text("Peso Bruto", style = MaterialTheme.typography.labelSmall)
                             Text(
                                 "${delivery.weightKgBruto ?: 0} kg",
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                // Texto Peso Bruto: DeepChocolate (0xFF3E2723)
+                                color = Color(0xFF3E2723)
                             )
                         }
                     }
                 }
 
-                Divider(modifier = Modifier.padding(vertical = 12.dp))
+                // Divisor: Un color café oscuro (0xFF5D4037)
+                Divider(modifier = Modifier.padding(vertical = 12.dp), color = Color(0xFF5D4037))
 
                 Text(
                     "Datos de Calidad",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    // Etiqueta: DeepChocolate (0xFF3E2723)
+                    color = Color(0xFF3E2723)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -474,112 +504,121 @@ fun DeliveryEditableCard(
                         singleLine = true
                     )
                 }
+            }
 
-                // 🔹 Peso Neto visible en Reportes
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Text(
-                        text = "Peso Neto: $pesoNetoTexto kg",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+            // ... (El resto del código de DeliveryEditableCard continúa aquí, usando los colores definidos)
 
-                Spacer(modifier = Modifier.height(8.dp))
+            // ... (Continuación de DeliveryEditableCard)
 
-                ExposedDropdownMenuBox(
+            // 🔹 Peso Neto visible en Reportes
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = "Peso Neto: $pesoNetoTexto kg",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = quality.ifEmpty { "Seleccione Calidad" },
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Clasificación Final") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
                     expanded = expanded,
-                    onExpandedChange = { expanded = !expanded },
-                    modifier = Modifier.fillMaxWidth()
+                    onDismissRequest = { expanded = false }
                 ) {
-                    OutlinedTextField(
-                        value = quality.ifEmpty { "Seleccione Calidad" },
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Clasificación Final") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                        },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        qualityOptions.forEach { selectionOption ->
-                            DropdownMenuItem(
-                                text = { Text(selectionOption) },
-                                onClick = {
-                                    quality = selectionOption
-                                    expanded = false
-                                }
-                            )
-                        }
+                    qualityOptions.forEach { selectionOption ->
+                        DropdownMenuItem(
+                            text = { Text(selectionOption) },
+                            onClick = {
+                                quality = selectionOption
+                                expanded = false
+                            }
+                        )
                     }
                 }
             }
+        }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        "Precio Base:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                    Text(
-                        "$${String.format("%,.0f", delivery.pricePerKg ?: 0.0)} /kg",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "TOTAL A PAGAR",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                    Text(
-                        moneyFormat,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold
-                        ),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Button(
-                    onClick = {
-                        val updated = delivery.copy(
-                            moisturePercentage = moistureText.toDoubleOrNull(),
-                            fermentationScore = fermentation,
-                            qualityGrade = quality
-                        )
-                        onSave(updated)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Guardar Análisis y Precio")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Precio Base:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+                Text(
+                    "$${String.format("%,.0f", delivery.pricePerKg ?: 0.0)} /kg",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "TOTAL A PAGAR",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Text(
+                    moneyFormat,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.ExtraBold
+                    ),
+                    // TOTAL A PAGAR: OrangeAccent (0xFFE65100)
+                    color = Color(0xFFE65100)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = {
+                    val updated = delivery.copy(
+                        moisturePercentage = moistureText.toDoubleOrNull(),
+                        fermentationScore = fermentation,
+                        qualityGrade = quality
+                    )
+                    onSave(updated)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    // Botón: DeepChocolate (0xFF3E2723)
+                    containerColor = Color(0xFF3E2723)
+                )
+            ) {
+                Text("Guardar Análisis y Precio")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
