@@ -1,57 +1,115 @@
 package me.oscarsanchez.cacaonet
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
+// ======================================
+//  PANTALLA DE GESTIÓN DE PAGOS Y VENTAS
+// ======================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PaymentsScreen(navController: NavController) {
+
+    // Color(0xFFD7CCC8) es LatteBackground
     Scaffold(
+        containerColor = Color(0xFFD7CCC8),
         topBar = {
             TopAppBar(
-                title = { Text("Gestión de Pagos y Ventas") }
+                title = {
+                    Text(
+                        text = "Gestión de Pagos y Ventas",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                // ⬅️ Botón de retroceso (Flecha para devolverse)
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Atrás",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF3E2723) // Color(0xFF3E2723) es DeepChocolate
+                )
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
+
+        // Color(0xFF3E2723) es DeepChocolate
+        val deepChocolateColor = Color(0xFF3E2723)
+        // Color(0xFFC5CAE9) es LightBlue
+        val lightBlueColor = Color(0xFFC5CAE9)
+
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
+            // Sección 1: Opciones de Transacciones
             Text(
-                "Opciones de Transacciones:",
-                style = MaterialTheme.typography.titleLarge
+                text = "Opciones de Transacciones:",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 8.dp),
+                color = deepChocolateColor
             )
 
-            // --- BOTÓN PARA REGISTRAR VENTA ---
+            // Botón: Registrar Nueva Venta (Entrega a Comprador)
             Button(
                 onClick = {
-                    // ** IMPORTANTE: Asegúrate de que tu NavGraph use el destino "registerSale" **
                     navController.navigate("registerSale")
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
+                    containerColor = lightBlueColor, // Fondo azul claro
+                    contentColor = deepChocolateColor // Texto en color oscuro
+                ),
+                shape = MaterialTheme.shapes.medium
             ) {
-                Text("Registrar Nueva Venta (Entrega a Comprador)")
+                Text(
+                    text = "Registrar Nueva Venta (Entrega a Comprador)",
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            Divider(Modifier.padding(vertical = 8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            // El divisor usa el color DeepChocolate con una transparencia de 30% (alpha = 0.3f)
+            Divider(color = deepChocolateColor.copy(alpha = 0.3f))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // --- LÓGICA DE PAGOS EXISTENTE ---
+            // Sección 2: Pagos a Productores
             Text(
-                "Pagos a Productores:",
-                style = MaterialTheme.typography.titleMedium
+                text = "Pagos a Productores:",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = deepChocolateColor
             )
-            // Aquí iría tu lógica actual de la pantalla de Pagos (listas, etc.)
-            Text("Lista o resumen de pagos pendientes/realizados...")
+
+            // Placeholder/resumen actual
+            Text(
+                text = "Lista o resumen de pagos pendientes/realizados...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray
+            )
+
+            // ...
         }
     }
 }
