@@ -11,7 +11,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.DateRange
-import androidx.compose.material.icons.outlined.Person
+// ... (Otros imports)
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,9 +27,7 @@ import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.*
 
-// ❌ ATENCIÓN: LA CLASE DATA CLASS DELIVERY SE HA ELIMINADO DE AQUÍ
-// PARA RESOLVER EL ERROR DE REDECLARACIÓN. SE ASUME QUE ESTÁ EN OTRO ARCHIVO
-// Y DEBERÍA SER IMPORTADA AUTOMÁTICAMENTE POR EL IDE.
+// ... (El data class Delivery sigue siendo externo)
 
 // ======================================
 //  INVENTARIO (Análisis Completado)
@@ -44,6 +42,9 @@ fun InventoryScreen(navController: NavController) {
     var filteredDeliveries by remember { mutableStateOf<List<Delivery>>(emptyList()) }
     var producersMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
+    // 🎯 NUEVA VARIABLE DE ESTADO PARA EL TOTAL
+    var totalLoteValue by remember { mutableStateOf(0.0) }
+
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var searchText by remember { mutableStateOf("") }
@@ -52,6 +53,7 @@ fun InventoryScreen(navController: NavController) {
     fun loadProducersMap(onComplete: () -> Unit) {
         db.collection("producers").get()
             .addOnSuccessListener { snapshot ->
+                // ... (Lógica de carga de productores omitida)
                 val temp = mutableMapOf<String, String>()
                 snapshot.documents.forEach { doc ->
                     val name = doc.getString("producerName")
@@ -66,7 +68,7 @@ fun InventoryScreen(navController: NavController) {
             .addOnFailureListener { onComplete() }
     }
 
-    // ---------- Cargar entregas con status = "Análisis Completo" ----------
+    // ---------- Cargar entregas con status = "Análisis Completo" (LÓGICA ACTUALIZADA) ----------
     fun loadInventoryDeliveries() {
         isLoading = true
         errorMessage = null
@@ -78,7 +80,7 @@ fun InventoryScreen(navController: NavController) {
                 .addOnSuccessListener { snapshot ->
                     try {
                         val list = snapshot.documents.map { doc ->
-
+                            // ... (Funciones auxiliares tsToString, num, anyToString omitidas)
                             fun tsToString(field: String): String? {
                                 val v = doc.get(field)
                                 return when (v) {
@@ -86,19 +88,16 @@ fun InventoryScreen(navController: NavController) {
                                         val date = v.toDate()
                                         SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(date)
                                     }
-
                                     null -> null
                                     else -> v.toString()
                                 }
                             }
-
                             fun num(field: String): Double? {
                                 val d = doc.getDouble(field)
                                 if (d != null) return d
                                 val l = doc.getLong(field)
                                 return l?.toDouble()
                             }
-
                             fun anyToString(field: String): String? {
                                 val v = doc.get(field)
                                 return when (v) {
@@ -128,6 +127,10 @@ fun InventoryScreen(navController: NavController) {
                             )
                         }
                         allDeliveries = list
+
+                        // 🎯 CÁLCULO DEL TOTAL AL CARGAR LOS DATOS
+                        totalLoteValue = list.sumOf { it.totalPayment ?: 0.0 }
+
                         isLoading = false
                     } catch (e: Exception) {
                         errorMessage = "Error: ${e.localizedMessage}"
@@ -148,6 +151,7 @@ fun InventoryScreen(navController: NavController) {
         if (searchText.isBlank()) {
             filteredDeliveries = allDeliveries
         } else {
+            // ... (Lógica de filtrado omitida por brevedad)
             val q = searchText.lowercase()
 
             filteredDeliveries = allDeliveries.filter { d ->
@@ -155,7 +159,6 @@ fun InventoryScreen(navController: NavController) {
                 val prodName = producersMap[d.producerId]?.lowercase() ?: ""
                 val matchName = prodName.contains(q)
 
-                // --- Filtro por Fecha (Análisis o Entrega) ---
                 val date = (d.deliveryDate as? Timestamp)?.toDate()
                 val dateStr = if (date != null)
                     SimpleDateFormat("dd/MM/yyyy", Locale("es", "ES")).format(date)
@@ -163,22 +166,23 @@ fun InventoryScreen(navController: NavController) {
                     d.analysisDate?.lowercase() ?: ""
                 val matchDate = dateStr.contains(q)
 
-                // --- Filtro por Calificación (Exportación/Nacional) ---
                 val grade = d.qualityGrade?.lowercase() ?: ""
                 val matchGrade = grade.contains(q)
 
-                // Si el usuario escribe 'exportacion' o 'nacional', también debe coincidir.
                 val matchExportacion = q.contains("exportacion") && grade.contains("exportacion")
                 val matchNacional = q.contains("nacional") && grade.contains("nacional")
 
                 matchLote || matchName || matchDate || matchGrade || matchExportacion || matchNacional
             }
         }
+        // 🎯 CÁLCULO DEL TOTAL CON BASE EN LOS LOTES FILTRADOS
+        totalLoteValue = filteredDeliveries.sumOf { it.totalPayment ?: 0.0 }
     }
 
     Scaffold(
         containerColor = Color(0xFFD7CCC8), // LatteBackground
         topBar = {
+            // ... (TopBar con Título y Buscador omitido)
             Column(modifier = Modifier.background(Color(0xFF3E2723))) { // DeepChocolate
 
                 CenterAlignedTopAppBar(
@@ -205,8 +209,7 @@ fun InventoryScreen(navController: NavController) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                         .heightIn(min = 48.dp),
-                    // 🎯 PLACEHOLDER ACTUALIZADO
-                    placeholder = { Text("Buscar: Productor, Lote o Fecha, etc...", color = Color.Gray) },
+                    placeholder = { Text("Buscar: Productor, Lote, Fecha, Exportación/Nacional...", color = Color.Gray) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                     trailingIcon = if (searchText.isNotEmpty()) {
                         {
@@ -247,9 +250,15 @@ fun InventoryScreen(navController: NavController) {
                 else -> LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp), // Ajustamos padding para la nueva tarjeta
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // 🎯 NUEVO COMPONENTE DE TARJETA TOTAL
+                    item {
+                        TotalValueCard(totalLoteValue)
+                        Spacer(Modifier.height(8.dp)) // Espacio extra después del total
+                    }
+
                     items(filteredDeliveries) { delivery ->
                         InventoryCardMinimal(delivery, db)
                     }
@@ -260,12 +269,50 @@ fun InventoryScreen(navController: NavController) {
 }
 
 // ====================================================================
-//  TARJETA MINIMALISTA (SIN CAMBIOS)
+//  NUEVA TARJETA DE VALOR TOTAL DEL INVENTARIO
+// ====================================================================
+@Composable
+fun TotalValueCard(totalValue: Double) {
+    val moneyFormat = String.format(Locale("es", "CO"), "$%,.0f", totalValue)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 90.dp), // Altura mínima para que se vea como un botón grande
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF5D4037)), // MilkChocolate
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "VALOR TOTAL DEL INVENTARIO",
+                color = Color(0xFFD7CCC8), // LatteBackground (Claro)
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = moneyFormat,
+                color = Color(0xFFFFCC80), // Naranja Claro / Ámbar para resaltar
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+    }
+}
+
+// ====================================================================
+//  TARJETA MINIMALISTA (SIN CAMBIOS EN LÓGICA INTERNA)
 // ====================================================================
 @Composable
 fun InventoryCardMinimal(delivery: Delivery, db: FirebaseFirestore) {
-
-    // Lógica de carga de datos y cálculo del peso neto
+    // ... (El resto de InventoryCardMinimal es el mismo que en tu código anterior)
     var producerName by remember { mutableStateOf("") }
     LaunchedEffect(delivery.producerId) {
         try {
