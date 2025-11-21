@@ -47,16 +47,6 @@ data class Delivery(
 )
 
 // =======================
-//  COLORES (HEXADECIMALES DIRECTOS)
-// =======================
-// Se definen para referencia, pero se usarán directamente en el código de Compose.
-// DeepChocolate = 0xFF3E2723
-// LatteBackground = 0xFFD7CCC8
-// CreamCard = 0xFFFFF8E1
-// CardColorPressed = 0xFFF0E5D3
-// OrangeAccent (Mantenido) = 0xFFE65100
-
-// =======================
 //  PANTALLA PRINCIPAL
 // =======================
 @OptIn(ExperimentalMaterial3Api::class)
@@ -185,20 +175,22 @@ fun ReportsScreen(navController: NavController) {
         // Fondo de pantalla: LatteBackground (0xFFD7CCC8)
         containerColor = Color(0xFFD7CCC8),
         topBar = {
-            Column(modifier = Modifier.background(Color(0xFFFFF8E1))) { // Fondo del TopBar: CreamCard (0xFFFFF8E1)
+            // ⭐ MODIFICACIÓN CLAVE: Fondo de la columna de la barra superior: DeepChocolate (0xFF3E2723)
+            Column(modifier = Modifier.background(Color(0xFF3E2723))) {
                 CenterAlignedTopAppBar(
-                    title = { Text("Reportes y Análisis", fontWeight = FontWeight.Bold, color = Color(0xFF3E2723)) }, // Título: DeepChocolate (0xFF3E2723)
+                    title = { Text("Reportes y Análisis", fontWeight = FontWeight.Bold, color = Color.White) }, // Título en blanco
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color(0xFF3E2723)) // Icono: DeepChocolate (0xFF3E2723)
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White) // Icono en blanco
                         }
                     },
                     actions = {
                         IconButton(onClick = { loadDeliveries() }) {
-                            Icon(Icons.Default.Refresh, contentDescription = "Recargar", tint = Color(0xFF3E2723)) // Icono: DeepChocolate (0xFF3E2723)
+                            Icon(Icons.Default.Refresh, contentDescription = "Recargar", tint = Color.White) // Icono en blanco
                         }
                     },
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        // Fondo del TopAppBar transparente para que la columna defina el color
                         containerColor = Color.Transparent
                     )
                 )
@@ -210,14 +202,15 @@ fun ReportsScreen(navController: NavController) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                         .heightIn(min = 48.dp),
-                    placeholder = { Text("Buscar productor, fecha o lote...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    placeholder = { Text("Buscar productor, fecha o lote...", color = Color.Gray) }, // Placeholder en gris para contraste
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) }, // Icono en gris
                     trailingIcon = if (searchText.isNotEmpty()) {
                         {
                             IconButton(onClick = { searchText = "" }) {
                                 Icon(
                                     Icons.Default.Clear,
-                                    contentDescription = "Limpiar búsqueda"
+                                    contentDescription = "Limpiar búsqueda",
+                                    tint = Color.Gray // Icono en gris
                                 )
                             }
                         }
@@ -225,10 +218,10 @@ fun ReportsScreen(navController: NavController) {
                     singleLine = true,
                     shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        // Se mantiene el color existente para el TextField (0xFFF5F2FF)
-                        focusedContainerColor = Color(0xFFF5F2FF),
-                        unfocusedContainerColor = Color(0xFFF5F2FF),
-                        disabledContainerColor = Color(0xFFF5F2FF),
+                        // Fondo del TextField en CreamCard (0xFFFFF8E1)
+                        focusedContainerColor = Color(0xFFFFF8E1),
+                        unfocusedContainerColor = Color(0xFFFFF8E1),
+                        disabledContainerColor = Color(0xFFFFF8E1),
                         focusedBorderColor = Color.Transparent,
                         unfocusedBorderColor = Color.Transparent
                     )
@@ -382,10 +375,12 @@ fun DeliveryEditableCard(
 
     val isCompleted = delivery.status == "Análisis Completo"
 
-    // Colores de estado (Mantenidos):
-    val headerColor = if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFFFF3E0) // Verde claro / Naranja claro
+    // ⭐ MODIFICACIÓN: Color del header de la tarjeta para PENDIENTE
+    val headerColor =
+        if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFE65100) // Fondo naranja (OrangeAccent) para PENDIENTE
     val statusText = if (isCompleted) "COMPLETADO" else "PENDIENTE DE ANÁLISIS"
-    val statusTextColor = if (isCompleted) Color(0xFF2E7D32) else Color(0xFFE65100) // Verde oscuro / Naranja oscuro
+    // ⭐ MODIFICACIÓN: Texto e icono del header en blanco para PENDIENTE
+    val statusTextColor = if (isCompleted) Color(0xFF2E7D32) else Color.White
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -399,6 +394,7 @@ fun DeliveryEditableCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    // ⭐ MODIFICACIÓN: Fondo del encabezado de la tarjeta
                     .background(headerColor)
                     .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -409,6 +405,7 @@ fun DeliveryEditableCard(
                         Icons.Outlined.DateRange,
                         null,
                         modifier = Modifier.size(16.dp),
+                        // ⭐ MODIFICACIÓN: Color del icono
                         tint = statusTextColor
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -416,6 +413,7 @@ fun DeliveryEditableCard(
                         dateString,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
+                        // ⭐ MODIFICACIÓN: Color del texto de la fecha
                         color = statusTextColor
                     )
                 }
@@ -423,6 +421,7 @@ fun DeliveryEditableCard(
                     statusText,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
+                    // ⭐ MODIFICACIÓN: Color del texto del estado
                     color = statusTextColor
                 )
             }
@@ -504,121 +503,118 @@ fun DeliveryEditableCard(
                         singleLine = true
                     )
                 }
-            }
 
-            // ... (El resto del código de DeliveryEditableCard continúa aquí, usando los colores definidos)
 
-            // ... (Continuación de DeliveryEditableCard)
-
-            // 🔹 Peso Neto visible en Reportes
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Text(
-                    text = "Peso Neto: $pesoNetoTexto kg",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedTextField(
-                    value = quality.ifEmpty { "Seleccione Calidad" },
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Clasificación Final") },
-                    trailingIcon = {
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                // 🔹 Peso Neto visible en Reportes
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    qualityOptions.forEach { selectionOption ->
-                        DropdownMenuItem(
-                            text = { Text(selectionOption) },
-                            onClick = {
-                                quality = selectionOption
-                                expanded = false
-                            }
-                        )
+                    Text(
+                        text = "Peso Neto: $pesoNetoTexto kg",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = quality.ifEmpty { "Seleccione Calidad" },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Clasificación Final") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        qualityOptions.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                text = { Text(selectionOption) },
+                                onClick = {
+                                    quality = selectionOption
+                                    expanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(
-                    "Precio Base:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-                Text(
-                    "$${String.format("%,.0f", delivery.pricePerKg ?: 0.0)} /kg",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "TOTAL A PAGAR",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "Precio Base:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
                     )
-                )
-                Text(
-                    moneyFormat,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.ExtraBold
-                    ),
-                    // TOTAL A PAGAR: OrangeAccent (0xFFE65100)
-                    color = Color(0xFFE65100)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = {
-                    val updated = delivery.copy(
-                        moisturePercentage = moistureText.toDoubleOrNull(),
-                        fermentationScore = fermentation,
-                        qualityGrade = quality
+                    Text(
+                        "$${String.format("%,.0f", delivery.pricePerKg ?: 0.0)} /kg",
+                        style = MaterialTheme.typography.bodySmall
                     )
-                    onSave(updated)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    // Botón: DeepChocolate (0xFF3E2723)
-                    containerColor = Color(0xFF3E2723)
-                )
-            ) {
-                Text("Guardar Análisis y Precio")
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "TOTAL A PAGAR",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    Text(
+                        moneyFormat,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold
+                        ),
+                        // TOTAL A PAGAR: OrangeAccent (0xFFE65100)
+                        color = Color(0xFFE65100)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        val updated = delivery.copy(
+                            moisturePercentage = moistureText.toDoubleOrNull(),
+                            fermentationScore = fermentation,
+                            qualityGrade = quality
+                        )
+                        onSave(updated)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        // Botón: DeepChocolate (0xFF3E2723)
+                        containerColor = Color(0xFF3E2723)
+                    )
+                ) {
+                    Text("Guardar Análisis y Precio")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
